@@ -1,0 +1,58 @@
+{
+  "fetchedAt": "2026-09-12T22:41:05.213Z",
+  "seasons": {
+    "2022-23": {
+      "plMatches": 380,
+      "champMatches": 557,
+      "plTeams": 20,
+      "champTeams": 24,
+      "plIncomplete": false
+    },
+    "2023-24": {
+      "plMatches": 380,
+      "champMatches": 557,
+      "plTeams": 20,
+      "champTeams": 24,
+      "plIncomplete": false
+    },
+    "2024-25": {
+      "plMatches": 380,
+      "champMatches": 557,
+      "plTeams": 20,
+      "champTeams": 24,
+      "plIncomplete": false
+    },
+    "2025-26": {
+      "plMatches": 380,
+      "champMatches": 557,
+      "plTeams": 20,
+      "champTeams": 24,
+      "plIncomplete": false
+    }
+  },
+  "validation": {
+    "unmatchedTeams": [],
+    "warnings": [
+      "Mapping 2022-23->2023-24: promoted teams not all in PL: Leicester City FC, Ipswich Town FC, Leeds United FC (maybe playoff winner not top3)",
+      "Mapping 2023-24->2024-25: promoted teams not all in PL: Leeds United FC, Burnley FC, Sheffield United FC (maybe playoff winner not top3)",
+      "Mapping 2024-25->2025-26: promoted teams not all in PL: Coventry City FC, Ipswich Town FC, Millwall FC (maybe playoff winner not top3)"
+    ]
+  },
+  "mapping": {
+    "2022-23->2023-24": {
+      "Burnley FC": "Leicester City FC",
+      "Luton Town FC": "Leeds United FC",
+      "Sheffield United FC": "Southampton FC"
+    },
+    "2023-24->2024-25": {
+      "Ipswich Town FC": "Luton Town FC",
+      "Leicester City FC": "Burnley FC",
+      "Southampton FC": "Sheffield United FC"
+    },
+    "2024-25->2025-26": {
+      "Burnley FC": "Leicester City FC",
+      "Leeds United FC": "Ipswich Town FC",
+      "Sunderland AFC": "Southampton FC"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "epl-same-fixture",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "sync": "node scripts/sync.mjs",
+    "dev": "npx serve .",
+    "test": "node --test js/*.test.js"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-09-12T22:41:05.213Z",
+  "seasons": [
+    "2022-23",
+    "2023-24",
+    "2024-25",
+    "2025-26"
+  ],
+  "mapping": {
+    "2022-23->2023-24": {
+      "Burnley FC": "Leicester City FC",
+      "Luton Town FC": "Leeds United FC",
+      "Sheffield United FC": "Southampton FC"
+    },
+    "2023-24->2024-25": {
+      "Ipswich Town FC": "Luton Town FC",
+      "Leicester City FC": "Burnley FC",
+      "Southampton FC": "Sheffield United FC"
+    },
+    "2024-25->2025-26": {
+      "Burnley FC": "Leicester City FC",
+      "Leeds United FC": "Ipswich Town FC",
+      "Sunderland AFC": "Southampton FC"
+    }
+  }
+}

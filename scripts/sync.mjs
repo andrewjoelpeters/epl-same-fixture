@@ -1,0 +1,189 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { computeTable } from './compute-table.mjs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(__dirname, '..');
+const dataDir = path.join(root, 'public/data');
+
+const SEASONS = ['2022-23', '2023-24', '2024-25', '2025-26'];
+const BRANCH = 'master';
+
+async function fetchJson(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`fetch ${url} -> ${res.status} ${res.statusText}`);
+  return res.json();
+}
+
+function normalizeMatches(raw) {
+  // raw is {name, matches: [{team1, team2, date, score, round}]}
+  return raw.matches || [];
+}
+
+async function main() {
+  fs.mkdirSync(dataDir, { recursive: true });
+
+  const report = { fetchedAt: new Date().toISOString(), seasons: {}, validation: { unmatchedTeams: [], warnings: [] }, mapping: {} };
+  const seasonData = {}; // season -> { pl: matches, champ: matches, plTable, champTable }
+
+  for (const season of SEASONS) {
+    const plUrl = `https://raw.githubusercontent.com/openfootball/football.json/${BRANCH}/${season}/en.1.json`;
+    const champUrl = `https://raw.githubusercontent.com/openfootball/football.json/${BRANCH}/${season}/en.2.json`;
+    console.log(`Fetching ${season} PL ...`);
+    let plRaw, champRaw;
+    try {
+      plRaw = await fetchJson(plUrl);
+    } catch (e) {
+      console.warn(`Failed PL ${season}: ${e.message}`);
+      report.validation.warnings.push(`PL fetch failed ${season}: ${e.message}`);
+      continue;
+    }
+    try {
+      champRaw = await fetchJson(champUrl);
+    } catch (e) {
+      console.warn(`Champ fetch failed ${season}: ${e.message} (ok if no champ file)`);
+      champRaw = { matches: [] };
+    }
+
+    const plMatches = normalizeMatches(plRaw);
+    const champMatches = normalizeMatches(champRaw);
+
+    // Write raw sanitized copies for client (same-origin)
+    fs.writeFileSync(path.join(dataDir, `en.1.${season}.json`), JSON.stringify(plRaw, null, 2));
+    fs.writeFileSync(path.join(dataDir, `en.2.${season}.json`), JSON.stringify(champRaw, null, 2));
+
+    const plTable = computeTable(plMatches);
+    const champTable = computeTable(champMatches);
+
+    seasonData[season] = { plMatches, champMatches, plTable, champTable, plRaw, champRaw };
+    report.seasons[season] = {
+      plMatches: plMatches.length,
+      champMatches: champMatches.length,
+      plTeams: plTable.length,
+      champTeams: champTable.length,
+      plIncomplete: plMatches.some(m => !m.score || m.score.ft === undefined && !Array.isArray(m.score)),
+    };
+  }
+
+  // Build aliases set and detect new teams
+  const allTeams = new Set();
+  for (const s of Object.values(seasonData)) {
+    for (const t of s.plTable) allTeams.add(t.team);
+    for (const t of s.champTable) allTeams.add(t.team);
+  }
+  const aliasesPath = path.join(root, 'public/data/aliases.json');
+  let existingAliases = {};
+  if (fs.existsSync(aliasesPath)) {
+    try { existingAliases = JSON.parse(fs.readFileSync(aliasesPath, 'utf8')); } catch {}
+  }
+  // If no aliases, generate from observed names (canonical = observed)
+  if (Object.keys(existingAliases).length === 0) {
+    const aliasMap = {};
+    for (const team of [...allTeams].sort()) {
+      aliasMap[team] = team;
+      // Also add short forms
+      const short = team.replace(' FC','').replace(' AFC','');
+      if (short !== team) aliasMap[short] = team;
+    }
+    // Common shorthands
+    aliasMap['Man United'] = 'Manchester United FC';
+    aliasMap['Man Utd'] = 'Manchester United FC';
+    aliasMap['Man City'] = 'Manchester City FC';
+    aliasMap['Spurs'] = 'Tottenham Hotspur FC';
+    aliasMap['Newcastle'] = 'Newcastle United FC';
+    aliasMap['Wolves'] = 'Wolverhampton Wanderers FC';
+    aliasMap['Brighton'] = 'Brighton & Hove Albion FC';
+    existingAliases = aliasMap;
+    fs.writeFileSync(aliasesPath, JSON.stringify(aliasMap, null, 2));
+    console.log(`Generated aliases.json with ${Object.keys(aliasMap).length} entries`);
+  }
+
+  // Detect unmatchedTeams: teams in latest season not covered by mapping logic
+  // Build mapping for each consecutive pair
+  const mapping = {};
+  for (let i = 1; i < SEASONS.length; i++) {
+    const prev = SEASONS[i-1];
+    const cur = SEASONS[i];
+    const prevData = seasonData[prev];
+    const curData = seasonData[cur];
+    if (!prevData || !curData) continue;
+    // Need complete tables (20 teams PL, 24 champ) to map; if incomplete skip
+    if (prevData.plTable.length < 20 || curData.plTable.length < 20) {
+      report.validation.warnings.push(`Skipping mapping ${prev}->${cur}: incomplete tables (prev ${prevData.plTable.length}, cur ${curData.plTable.length})`);
+      continue;
+    }
+    // Order by position best->worst is table order already
+    const relegated = prevData.plTable.slice(-3); // 18,19,20 but in order 18 best of relegated first
+    // Actually prev plTable sorted best->worst, slice(-3) gives [18,19,20] in correct order
+    const promoted = curData.champTable.slice(0,3); // 1,2,3
+    if (promoted.length < 3) {
+      report.validation.warnings.push(`Skipping mapping ${prev}->${cur}: champ table incomplete (${promoted.length})`);
+      continue;
+    }
+    // Validate that cur PL teams contain promoted teams (they should)
+    const curPlTeams = new Set(curData.plTable.map(r=>r.team));
+    const missingPromoted = promoted.filter(p => !curPlTeams.has(p.team)).map(p=>p.team);
+    if (missingPromoted.length) {
+      report.validation.warnings.push(`Mapping ${prev}->${cur}: promoted teams not all in PL: ${missingPromoted.join(', ')} (maybe playoff winner not top3)`);
+      // Attempt to recover: find actual promoted = diff between cur PL and prev PL
+      const prevPlTeams = new Set(prevData.plTable.map(r=>r.team));
+      const actualPromoted = [...curPlTeams].filter(t => !prevPlTeams.has(t));
+      if (actualPromoted.length === 3) {
+        // Order actual promoted by champ table position if possible, else alphabetical
+        actualPromoted.sort((a,b) => {
+          const pa = curData.champTable.findIndex(r=>r.team===a);
+          const pb = curData.champTable.findIndex(r=>r.team===b);
+          if (pa!==-1 && pb!==-1) return pa-pb;
+          return a.localeCompare(b);
+        });
+        console.log(`Recovered actual promoted for ${prev}->${cur}: ${actualPromoted.join(', ')}`);
+        // Rebuild promoted ordered by actual
+        promoted.length = 0;
+        for (const name of actualPromoted) {
+          const row = curData.champTable.find(r=>r.team===name) || {team:name, Pts:0};
+          promoted.push(row);
+        }
+      }
+    }
+
+    // Build map Champ 1->18, 2->19, 3->20
+    const m = {};
+    for (let j=0;j<3;j++) {
+      if (relegated[j] && promoted[j]) {
+        m[promoted[j].team] = relegated[j].team;
+      }
+    }
+    mapping[`${prev}->${cur}`] = m;
+    console.log(`Mapping ${prev}->${cur}:`, m);
+  }
+
+  report.mapping = mapping;
+  fs.writeFileSync(path.join(dataDir, 'mapping.json'), JSON.stringify(mapping, null, 2));
+  // Also generate JS module for client
+  fs.writeFileSync(path.join(root, 'js/mapping.generated.js'), `// Auto-generated by scripts/sync.mjs at ${report.fetchedAt}\n// Do not edit manually\nexport const MAPPING = ${JSON.stringify(mapping, null, 2)};\n`);
+
+  // Detect unmatchedTeams across all seasons vs aliases
+  for (const team of allTeams) {
+    const canonical = existingAliases[team];
+    if (!canonical) {
+      report.validation.unmatchedTeams.push(team);
+    }
+  }
+  if (report.validation.unmatchedTeams.length) {
+    console.warn(`Unmatched teams (not in aliases): ${report.validation.unmatchedTeams.join(', ')}`);
+    console.warn(`::warning:: ${report.validation.unmatchedTeams.length} unmatched teams detected`);
+  }
+
+  // Write validation report
+  fs.writeFileSync(path.join(dataDir, 'validation-report.json'), JSON.stringify(report, null, 2));
+
+  // Generate manifest for client
+  const manifest = { generatedAt: report.fetchedAt, seasons: SEASONS, mapping };
+  fs.writeFileSync(path.join(dataDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+
+  console.log(`Sync complete. Seasons: ${Object.keys(seasonData).join(', ')}`);
+  console.log(`Validation warnings: ${report.validation.warnings.length}, unmatched: ${report.validation.unmatchedTeams.length}`);
+}
+
+main().catch(e => { console.error(e); process.exit(1); });

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>EPL Same-Fixture Points — vs Last Season</title>
+  <meta name="description" content="How many points has your Premier League team gained compared to the same fixtures last season? Strict home/away, promoted proxy 1→18.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>EPL Same-Fixture Tracker</h1>
+  <p>Points vs the same fixtures last season — strict home/away. Promoted 1/2/3 ↔ Relegated 18/19/20 proxy.</p>
+</header>
+
+<main>
+  <div id="banner-host"></div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label for="seasonSel">Season comparison</label>
+        <select id="seasonSel">
+          <option value="2025-26|2024-25">2025-26 vs 2024-25</option>
+          <option value="2024-25|2023-24">2024-25 vs 2023-24</option>
+          <option value="2023-24|2022-23">2023-24 vs 2022-23</option>
+        </select>
+      </div>
+      <div>
+        <label for="teamSel">Team</label>
+        <select id="teamSel"><option value="">Loading teams…</option></select>
+      </div>
+      <div style="margin-left:auto; display:flex; gap:0.5rem; align-items:end; flex-wrap:wrap;">
+        <button id="addBtn" class="primary">+ Add / Edit Result</button>
+        <button id="shareBtn">Copy Share Link</button>
+        <button id="exportBtn" class="ghost">Export JSON</button>
+        <label style="display:inline-flex; align-items:center; gap:0.3rem; cursor:pointer; font-size:0.85rem; border:1px dashed #cbd5e1; padding:0.5rem 0.6rem; border-radius:6px;">
+          Import <input id="importFile" type="file" accept=".json" style="display:none">
+        </label>
+      </div>
+    </div>
+    <p class="help">Data: <a href="https://github.com/openfootball/football.json" target="_blank">openfootball CC0</a> — synced nightly via GitHub Actions to <code>public/data/</code> (same-origin). Manual results stored in <code>localStorage</code> and shareable via <code>?m=</code> URL. Strict home/away matching by default.</p>
+    <p class="help" id="validationHost"></p>
+  </div>
+
+  <div class="card" id="summaryCard">
+    <div class="summary" id="summaryHost">
+      <div><div class="k">Current season</div><div class="v" id="vThis">–</div><div class="k" id="kThis">pts (— played)</div></div>
+      <div><div class="k">Same fixtures last season</div><div class="v" id="vLast">–</div><div class="k" id="kLast">pts (— comparable)</div></div>
+      <div><div class="k">Delta</div><div class="v neu" id="vDelta">—</div><div class="k" id="kDelta">—</div></div>
+    </div>
+    <p class="help" id="summaryNote"></p>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <strong id="tableTitle">Fixtures</strong>
+      <span class="help" id="tableMeta"></span>
+    </div>
+    <div style="overflow:auto">
+      <table id="fixtureTable">
+        <thead>
+          <tr>
+            <th>Date</th><th>Round</th><th>Opponent</th><th>Venue</th>
+            <th>Current</th><th>Last (same fixture)</th><th>Δ</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="8" class="muted">Select a team to see comparison.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="help" id="legend">Legend: <span class="badge manual">Manual</span> override • <span class="badge proxy">Proxy</span> promoted ↔ relegated (1→18,2→19,3→20) • Strict home/away only.</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 0.5rem">How promoted proxy works</h3>
+    <p class="help" style="margin:0">If a 2025-26 opponent wasn't in PL last season (e.g. Sunderland), we compare the fixture vs the relegated team of equivalent position: <code>Leeds (Champ 1) → Leicester (PL 18), Burnley (2) → Ipswich (19), Sunderland (3) → Southampton (20)</code>. This mapping is auto-generated in <code>public/data/mapping.json</code> by <code>scripts/sync.mjs</code> from computed tables and flagged if mismatched. Change file to correct.</p>
+  </div>
+
+  <footer>
+    <p>Built static for GitHub Pages. Source: <code>scripts/sync.mjs</code> + <code>public/data/</code>. No backend. No cookies.</p>
+    <p id="manifestHost" class="help"></p>
+  </footer>
+</main>
+
+<dialog id="editDialog">
+  <form method="dialog" id="editForm">
+    <h3 id="dialogTitle" style="margin:0 0 0.8rem">Add / Edit Result</h3>
+    <div class="form-grid">
+      <div class="full">
+        <label>Date</label>
+        <input type="date" id="fDate" required>
+      </div>
+      <div>
+        <label>Home team</label>
+        <select id="fHome" required></select>
+      </div>
+      <div>
+        <label>Away team</label>
+        <select id="fAway" required></select>
+      </div>
+      <div>
+        <label>Home goals</label>
+        <input type="number" id="fHg" min="0" max="20" required>
+      </div>
+      <div>
+        <label>Away goals</label>
+        <input type="number" id="fAg" min="0" max="20" required>
+      </div>
+      <div class="full">
+        <label>Round (optional)</label>
+        <input type="text" id="fRound" placeholder="e.g. Matchday 4 or Manual">
+      </div>
+      <input type="hidden" id="fKey">
+    </div>
+    <p class="help" id="dialogHelp">Strict: home/away must match. Overwrites any official fixture with same home+away+date.</p>
+    <div style="display:flex; gap:0.6rem; justify-content:flex-end; margin-top:1rem;">
+      <button type="button" id="cancelBtn">Cancel</button>
+      <button class="primary" type="submit" id="saveBtn">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
