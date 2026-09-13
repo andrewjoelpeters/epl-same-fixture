@@ -49,8 +49,9 @@ tbody tr:last-child td{border-bottom:1px solid var(--bd)}
 .score-cell.score-l{background:var(--lossbg);border-left:2px solid var(--rd)}
 .score-cell.score-unplayed{background:#f9f9f7;border:1px dashed #e6e2de;color:var(--mut);opacity:.55}
 .score-cell.score-unplayed .score{color:var(--mut);font-weight:400}
-.delta{display:inline-block;min-width:28px;padding:1px 4px;font-size:11px;font-weight:700;text-align:center;border-radius:2px}
-.delta.zero{color:var(--mut);background:var(--zero)}
+.delta{display:inline-block;min-width:28px;padding:1px 4px;font-size:11px;font-weight:700;text-align:center;border-radius:2px;border:1px solid transparent}
+.delta.zero{color:var(--mut);background:var(--zero);border-color:#e7e5e4}
+.delta.zero-max{color:var(--gr);background:#eef6f0;border-color:#c6e9d2}
 .delta.p1{color:var(--gr);background:var(--pos1)}
 .delta.p2{color:var(--gr);background:var(--pos2)}
 .delta.p3{color:var(--gr);background:var(--pos3);font-weight:800}
@@ -59,6 +60,9 @@ tbody tr:last-child td{border-bottom:1px solid var(--bd)}
 .delta.n3{color:var(--rd);background:var(--neg3);font-weight:800}
 .row-pending{opacity:.72;background:#fcfcfa}
 .row-pending td{border-bottom-color:#f0ece8}
+.row-hidden{display:none}
+.toggle-link{font-size:10px;letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:var(--mut);cursor:pointer;background:none;border:none;padding:4px 6px;text-decoration:underline;text-decoration-style:dashed;text-underline-offset:3px}
+.toggle-link:hover{color:var(--tx)}
 .opp-sub{font-size:9px;color:var(--mut);font-weight:400;letter-spacing:.02em;text-transform:none;margin-left:4px}
 .badge{font-size:7px;padding:1px 3px;border:1px solid var(--bd2);background:#f5f3f1;color:var(--mut);vertical-align:middle;margin-left:3px;letter-spacing:.04em;text-transform:uppercase}
 .badge.proxy{background:#fef9e7;border-color:#f3e5b5;color:#7a5a00}

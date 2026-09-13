@@ -19,6 +19,7 @@ const bannerHost = document.getElementById('banner-host');
 const manifestHost = document.getElementById('manifestHost');
 const addBtn = document.getElementById('addBtn'), shareBtn = document.getElementById('shareBtn'), exportBtn = document.getElementById('exportBtn');
 const importFile = document.getElementById('importFile');
+const toggleUnplayed = document.getElementById('toggleUnplayed');
 const dialog = document.getElementById('editDialog');
 const fDate = document.getElementById('fDate'), fHome = document.getElementById('fHome'), fAway = document.getElementById('fAway'), fHg = document.getElementById('fHg'), fAg = document.getElementById('fAg'), fRound = document.getElementById('fRound'), fKey = document.getElementById('fKey');
 
@@ -26,6 +27,8 @@ let allSeasonsData = {};
 let mapping = {};
 let teamsBySeason = {};
 let currentTeam = '';
+let showUnplayed = false;
+try { showUnplayed = localStorage.getItem('epl-showUnplayed') === '1'; } catch {}
 
 function loadDeleted(season){ try{return new Set(JSON.parse(localStorage.getItem('epl-deleted-'+season)||'[]'))}catch{return new Set()} }
 function saveDeleted(season,set){ localStorage.setItem('epl-deleted-'+season, JSON.stringify([...set])) }
@@ -90,6 +93,11 @@ async function init(){
   importFile.addEventListener('change',importJson);
   document.getElementById('cancelBtn').addEventListener('click',()=>dialog.close());
   document.getElementById('editForm').addEventListener('submit',onSave);
+  if (toggleUnplayed) toggleUnplayed.addEventListener('click',()=>{
+    showUnplayed = !showUnplayed;
+    try { localStorage.setItem('epl-showUnplayed', showUnplayed ? '1' : '0'); } catch {}
+    refresh();
+  });
   writeUrl(); refresh();
 }
 
@@ -171,14 +179,33 @@ function deltaClass(d, isTotal){
   if(d===0) return 'zero';
   const m=Math.abs(d);
   const mag = m>=3?3: m===2?2:1;
-  // total gets one step higher saturation where possible
   const eff = isTotal && mag<3 ? mag+1 : mag;
   return (d>0?'p':'n')+eff;
 }
-function fmtDelta(d, isTotal){
+function fmtDeltaVenue(d, curPts, prevPts){
   if(d===null||d===undefined) return `<span class="delta zero">–</span>`;
-  if(d===0) return `<span class="delta zero">0</span>`;
-  const cls=deltaClass(d, isTotal);
+  if(d===0){
+    const isMax = curPts===3 && prevPts===3;
+    return `<span class="delta ${isMax?'zero-max':'zero'}">0</span>`;
+  }
+  const cls=deltaClass(d,false);
+  return `<span class="delta ${cls}">${d>0?`+${d}`:d}</span>`;
+}
+function fmtDeltaTotal(d, row){
+  if(d===null||d===undefined) return `<span class="delta zero">–</span>`;
+  if(d===0){
+    const homePlayed = row.ftCurH !== null;
+    const awayPlayed = row.ftCurA !== null;
+    const homeMax = row.curHomePts===3 && row.prevHomePts===3;
+    const awayMax = row.curAwayPts===3 && row.prevAwayPts===3;
+    let isMax = false;
+    if (homePlayed && awayPlayed) isMax = homeMax && awayMax;
+    else if (homePlayed && !awayPlayed) isMax = homeMax;
+    else if (!homePlayed && awayPlayed) isMax = awayMax;
+    else isMax = false;
+    return `<span class="delta ${isMax?'zero-max':'zero'}">0</span>`;
+  }
+  const cls=deltaClass(d,true);
   return `<span class="delta ${cls}">${d>0?`+${d}`:d}</span>`;
 }
 
@@ -197,13 +224,27 @@ function render(cmp, curLabel, prevLabel){
   tableTitle.textContent=cmp.team.replace(' FC','').replace(' AFC','');
   tableMeta.textContent=`${rows.length} opps · ${comparable} comp`;
 
+  // toggle handling
+  const hiddenRows = rows.filter(r=> !r.ftCurH && !r.ftCurA);
+  const hiddenCount = hiddenRows.length;
+  if (toggleUnplayed) {
+    if (hiddenCount > 0) {
+      toggleUnplayed.style.display = '';
+      toggleUnplayed.textContent = showUnplayed ? `Hide ${hiddenCount} unplayed` : `Show ${hiddenCount} unplayed`;
+    } else {
+      toggleUnplayed.style.display = 'none';
+    }
+  }
+  tableMeta.textContent = `${rows.length} opps · ${comparable} comp` + (hiddenCount && !showUnplayed ? ` · ${hiddenCount} hidden` : '');
+
   tbody.innerHTML='';
   for(const r of rows){
+    const isRowPending = !r.ftCurH && !r.ftCurA;
+    if (isRowPending && !showUnplayed) continue;
     const oppShort=r.opp.replace(' FC','').replace(' AFC','').replace('Brighton & Hove Albion','Brighton');
     const proxBadge=r.isProxy?`<span class="badge proxy" title="${r.proxyOpp}→${r.opp}">p</span>`:'';
     const curHKey=r.curHome?r.curHome._key:`new|${cmp.team}|${r.opp}`;
     const curAKey=r.curAway?r.curAway._key:`new|${r.opp}|${cmp.team}`;
-    const isRowPending = !r.ftCurH && !r.ftCurA;
     const prevHWdl = wdlClass(r.prevHomePts);
     const curHWdl = r.ftCurH ? wdlClass(r.curHomePts) : 'score-unplayed';
     const prevAWdl = wdlClass(r.prevAwayPts);
@@ -215,12 +256,17 @@ function render(cmp, curLabel, prevLabel){
       <td>${oppShort}${proxBadge}</td>
       <td class="sep ${r.ftPrevH?prevHWdl:''}">${fmtScore(r.ftPrevH, r.prevHomePts, false, false)}</td>
       <td class="score-cell ${curHWdl}" data-edit="${curHKey}">${fmtScore(r.ftCurH, r.curHomePts, r.curHome&&r.curHome._source==='manual', !r.ftCurH)}</td>
-      <td>${fmtDelta(r.hDelta, false)}</td>
+      <td>${fmtDeltaVenue(r.hDelta, r.curHomePts, r.prevHomePts)}</td>
       <td class="sep ${r.ftPrevA?prevAWdl:''}">${fmtScore(r.ftPrevA, r.prevAwayPts, false, false)}</td>
       <td class="score-cell ${curAWdl}" data-edit="${curAKey}">${fmtScore(r.ftCurA, r.curAwayPts, r.curAway&&r.curAway._source==='manual', !r.ftCurA)}</td>
-      <td>${fmtDelta(r.aDelta, false)}</td>
-      <td class="sep">${fmtDelta(r.totalDelta, true)}</td>
+      <td>${fmtDeltaVenue(r.aDelta, r.curAwayPts, r.prevAwayPts)}</td>
+      <td class="sep">${fmtDeltaTotal(r.totalDelta, r)}</td>
     `;
+    tbody.appendChild(tr);
+  }
+  if (tbody.children.length === 0) {
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td colspan="8" class="muted" style="text-align:center;padding:10px">No played fixtures yet — add a result or show unplayed</td>`;
     tbody.appendChild(tr);
   }
   tbody.querySelectorAll('[data-edit]').forEach(cell=>{
