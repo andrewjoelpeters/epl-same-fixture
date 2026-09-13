@@ -43,7 +43,7 @@ export function buildCumulative(team, curMatches, prevMatches, mapping, curTeams
       bPts,
       cumA,
       cumB,
-      delta: cumA - cumB,
+      delta: isPlayed ? cumA - cumB : null,
       isPlayed,
       isProxy: proxyOpp !== opp,
       ftCur,
@@ -53,17 +53,16 @@ export function buildCumulative(team, curMatches, prevMatches, mapping, curTeams
     });
   }
 
-  // no projection — x ends at last played game
+  // fixed x at 38, even when unplayed — keep all points, but future not drawn
   let lastPlayedIdx = -1;
   for (let i = 0; i < points.length; i++) if (points[i].isPlayed) lastPlayedIdx = i;
-  // truncate to last played (no future plateau)
-  const truncated = lastPlayedIdx >= 0 ? points.slice(0, lastPlayedIdx + 1) : [];
-  // y max at least 5 higher than current season total
-  const curMax = truncated.length ? Math.max(...truncated.map(p => p.cumA)) : 0;
-  const bothMax = truncated.length ? Math.max(...truncated.map(p => Math.max(p.cumA, p.cumB)), 1) : 1;
+  // for future games, keep x but mark delta as null so line stops; y max based on played only
+  const playedPoints = lastPlayedIdx >= 0 ? points.slice(0, lastPlayedIdx + 1) : [];
+  const curMax = playedPoints.length ? Math.max(...playedPoints.map(p => p.cumA)) : 0;
+  const bothMax = playedPoints.length ? Math.max(...playedPoints.map(p => Math.max(p.cumA, p.cumB)), 1) : 5;
   const withHeadroom = Math.max(bothMax, curMax + 5);
   const roundedMax = Math.max(5, Math.ceil(withHeadroom / 5) * 5);
-  // keep isProjected false for all in truncated
-  for (const p of truncated) { p.isProjected = false; p.projCumA = p.cumA; }
-  return { points: truncated, maxY: roundedMax, curRows };
+  // keep all 38 points for fixed x-axis, but future deltas will be null in chart data
+  for (const p of points) { p.isProjected = false; p.projCumA = p.cumA; }
+  return { points, maxY: roundedMax, curRows, lastPlayedIdx };
 }
