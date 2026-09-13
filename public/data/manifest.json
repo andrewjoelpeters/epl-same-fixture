@@ -1,10 +1,11 @@
 {
-  "generatedAt": "2026-09-12T22:41:05.213Z",
+  "generatedAt": "2026-09-12T23:52:50.598Z",
   "seasons": [
     "2022-23",
     "2023-24",
     "2024-25",
-    "2025-26"
+    "2025-26",
+    "2026-27"
   ],
   "mapping": {
     "2022-23->2023-24": {
@@ -21,6 +22,11 @@
       "Burnley FC": "Leicester City FC",
       "Leeds United FC": "Ipswich Town FC",
       "Sunderland AFC": "Southampton FC"
+    },
+    "2025-26->2026-27": {
+      "Coventry City FC": "West Ham United FC",
+      "Hull City AFC": "Burnley FC",
+      "Ipswich Town FC": "Wolverhampton Wanderers FC"
     }
   }
 }

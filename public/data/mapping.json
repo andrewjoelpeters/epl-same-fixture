@@ -13,5 +13,10 @@
     "Burnley FC": "Leicester City FC",
     "Leeds United FC": "Ipswich Town FC",
     "Sunderland AFC": "Southampton FC"
+  },
+  "2025-26->2026-27": {
+    "Coventry City FC": "West Ham United FC",
+    "Hull City AFC": "Burnley FC",
+    "Ipswich Town FC": "Wolverhampton Wanderers FC"
   }
 }

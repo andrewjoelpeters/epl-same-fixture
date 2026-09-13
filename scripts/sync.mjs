@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const dataDir = path.join(root, 'public/data');
 
-const SEASONS = ['2022-23', '2023-24', '2024-25', '2025-26'];
+const SEASONS = ['2022-23', '2023-24', '2024-25', '2025-26', '2026-27'];
 const BRANCH = 'master';
 
 async function fetchJson(url) {
@@ -77,16 +77,14 @@ async function main() {
   if (fs.existsSync(aliasesPath)) {
     try { existingAliases = JSON.parse(fs.readFileSync(aliasesPath, 'utf8')); } catch {}
   }
-  // If no aliases, generate from observed names (canonical = observed)
+  // Generate or merge aliases
   if (Object.keys(existingAliases).length === 0) {
     const aliasMap = {};
     for (const team of [...allTeams].sort()) {
       aliasMap[team] = team;
-      // Also add short forms
       const short = team.replace(' FC','').replace(' AFC','');
       if (short !== team) aliasMap[short] = team;
     }
-    // Common shorthands
     aliasMap['Man United'] = 'Manchester United FC';
     aliasMap['Man Utd'] = 'Manchester United FC';
     aliasMap['Man City'] = 'Manchester City FC';
@@ -97,6 +95,17 @@ async function main() {
     existingAliases = aliasMap;
     fs.writeFileSync(aliasesPath, JSON.stringify(aliasMap, null, 2));
     console.log(`Generated aliases.json with ${Object.keys(aliasMap).length} entries`);
+  } else {
+    let added = 0;
+    for (const team of [...allTeams].sort()) {
+      if (!existingAliases[team]) { existingAliases[team] = team; added++; }
+      const short = team.replace(' FC','').replace(' AFC','');
+      if (short !== team && !existingAliases[short]) { existingAliases[short] = team; added++; }
+    }
+    if (added) {
+      fs.writeFileSync(aliasesPath, JSON.stringify(existingAliases, null, 2));
+      console.log(`Updated aliases.json with ${added} new entries`);
+    }
   }
 
   // Detect unmatchedTeams: teams in latest season not covered by mapping logic

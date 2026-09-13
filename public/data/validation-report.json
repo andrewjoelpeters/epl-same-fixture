@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-09-12T22:41:05.213Z",
+  "fetchedAt": "2026-09-12T23:52:50.598Z",
   "seasons": {
     "2022-23": {
       "plMatches": 380,
@@ -28,6 +28,13 @@
       "plTeams": 20,
       "champTeams": 24,
       "plIncomplete": false
+    },
+    "2026-27": {
+      "plMatches": 380,
+      "champMatches": 552,
+      "plTeams": 20,
+      "champTeams": 24,
+      "plIncomplete": true
     }
   },
   "validation": {
@@ -35,7 +42,8 @@
     "warnings": [
       "Mapping 2022-23->2023-24: promoted teams not all in PL: Leicester City FC, Ipswich Town FC, Leeds United FC (maybe playoff winner not top3)",
       "Mapping 2023-24->2024-25: promoted teams not all in PL: Leeds United FC, Burnley FC, Sheffield United FC (maybe playoff winner not top3)",
-      "Mapping 2024-25->2025-26: promoted teams not all in PL: Coventry City FC, Ipswich Town FC, Millwall FC (maybe playoff winner not top3)"
+      "Mapping 2024-25->2025-26: promoted teams not all in PL: Coventry City FC, Ipswich Town FC, Millwall FC (maybe playoff winner not top3)",
+      "Mapping 2025-26->2026-27: promoted teams not all in PL: Swansea City AFC, Middlesbrough FC, Queens Park Rangers FC (maybe playoff winner not top3)"
     ]
   },
   "mapping": {
@@ -53,6 +61,11 @@
       "Burnley FC": "Leicester City FC",
       "Leeds United FC": "Ipswich Town FC",
       "Sunderland AFC": "Southampton FC"
+    },
+    "2025-26->2026-27": {
+      "Coventry City FC": "West Ham United FC",
+      "Hull City AFC": "Burnley FC",
+      "Ipswich Town FC": "Wolverhampton Wanderers FC"
     }
   }
 }
