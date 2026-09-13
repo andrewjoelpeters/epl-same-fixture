@@ -4,6 +4,8 @@ import { comparePerOpponent } from './js/compare.js';
 import { mergeMatches } from './js/merge.js';
 import { loadManual, saveManual } from './js/storage.js';
 import { encodeManual, decodeManual, readUrlState, writeUrlState } from './js/url.js';
+import { buildCumulative } from './js/cumulative.js';
+import { renderCumulativeChart } from './js/chart.js';
 
 const seasonA = document.getElementById('seasonA');
 const seasonB = document.getElementById('seasonB');
@@ -141,6 +143,16 @@ function refresh(){
   const curTeams=teamsBySeason[cur]||[];
   const cmp=comparePerOpponent(teamSel.value, curMatches, prevMatches, map, curTeams);
   render(cmp, cur, prev);
+  // chart: cumulative sorted by this season's game order
+  const cum = buildCumulative(teamSel.value, curMatches, prevMatches, map, curTeams);
+  const chartHost=document.getElementById('chartHost');
+  const chartMeta=document.getElementById('chartMeta');
+  if(chartHost){
+    renderCumulativeChart(chartHost, cum.points, {maxY: cum.maxY, curLabel: cur, prevLabel: prev});
+    const lastPlayed = [...cum.points].reverse().find(p=>p.isPlayed);
+    const lastX = lastPlayed ? lastPlayed.x : 0;
+    chartMeta.textContent = `${cum.points.length} gms · ${lastX} played · max ${cum.maxY} pts`;
+  }
 }
 
 function wdlClass(pts){
