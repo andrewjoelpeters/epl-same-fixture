@@ -156,31 +156,26 @@ export function renderCumulativeChart(host, points, opts = {}) {
     },
   });
 
-  // right-side line label + final value like Datawrapper (+5.1%)
+  // right-side value label like Datawrapper (+3)
   const lastIdx = points.findLastIndex(p => p.delta !== null && p.delta !== undefined);
   const last = lastIdx >= 0 ? points[lastIdx] : null;
   if (last) {
     const plugin = {
       id: 'finalLabel',
       afterDatasetsDraw(chart) {
-        const { ctx, scales, chartArea } = chart;
+        const { ctx, scales } = chart;
         const xScale = scales.x;
         const yScale = scales.y;
         if (!xScale || !yScale) return;
         const x = xScale.getPixelForValue(last.x);
         const y = yScale.getPixelForValue(last.delta);
         ctx.save();
-        // value label
         ctx.font = '700 13px Inter, system-ui, sans-serif';
         ctx.fillStyle = last.delta > 0 ? '#0f7a3d' : last.delta < 0 ? '#b42318' : '#6b6560';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
-        const txt = `${last.delta > 0 ? '+' : ''}${last.delta} pts`;
+        const txt = `${last.delta > 0 ? '+' : ''}${last.delta}`;
         ctx.fillText(txt, x + 8, y);
-        // line label on far right edge
-        ctx.font = '600 11px Inter, system-ui, sans-serif';
-        ctx.fillStyle = last.delta > 0 ? '#0f7a3d' : last.delta < 0 ? '#b42318' : '#6b6560';
-        ctx.textAlign = 'left';
         ctx.restore();
       },
     };
