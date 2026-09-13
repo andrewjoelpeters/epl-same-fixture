@@ -73,17 +73,8 @@ export function renderCumulativeChart(host, points, opts = {}) {
   const n = points.length;
   const labels = points.map(p => p.x);
 
-  // find last played index
-  let lastPlayedIdx = -1;
-  for (let i = 0; i < points.length; i++) if (points[i].isPlayed) lastPlayedIdx = i;
-
   const dataPrev = points.map(p => p.cumB);
-  const dataCurActual = points.map((p, i) => (p.isPlayed ? p.cumA : null));
-  const dataProj = points.map((p, i) => {
-    if (i < lastPlayedIdx) return null;
-    if (i === lastPlayedIdx) return p.cumA; // anchor
-    return p.projCumA;
-  });
+  const dataCurActual = points.map(p => p.cumA);
 
   // Determine y max already passed as maxY
   const ctx = canvas.getContext('2d');
@@ -115,18 +106,6 @@ export function renderCumulativeChart(host, points, opts = {}) {
           pointRadius: 0,
           pointHoverRadius: 3,
           pointBackgroundColor: '#111',
-          tension: 0.15,
-          spanGaps: false,
-        },
-        {
-          label: curLabel + ' (proj.)',
-          data: dataProj,
-          borderColor: '#111',
-          backgroundColor: 'transparent',
-          borderWidth: 1.6,
-          borderDash: [6, 4],
-          pointRadius: 0,
-          pointHoverRadius: 0,
           tension: 0.15,
           spanGaps: false,
         },
@@ -172,8 +151,7 @@ export function renderCumulativeChart(host, points, opts = {}) {
               const venue = p.venue === 'H' ? 'H' : 'A';
               const opp = p.opp.replace(' FC','').replace(' AFC','');
               const ft = p.ftCur ? `${p.ftCur[0]}–${p.ftCur[1]}` : '—';
-              const isProj = p.isProjected;
-              return `GW ${p.x} · ${opp} ${venue} · ${ft}${isProj ? ' (proj.)' : ''}`;
+              return `GW ${p.x} · ${opp} ${venue} · ${ft}`;
             },
             label: (item) => {
               const idx = item.dataIndex;
@@ -181,14 +159,9 @@ export function renderCumulativeChart(host, points, opts = {}) {
               const ds = item.datasetIndex;
               if (ds === 0) return ` ${prevLabel}: ${p.cumB} pts`;
               if (ds === 1) {
-                if (!p.isPlayed) return null;
                 const d = p.delta;
                 const sign = d>0?`+${d}`:String(d);
                 return ` ${curLabel}: ${p.cumA} pts (${sign})`;
-              }
-              if (ds === 2) {
-                if (p.isPlayed) return null;
-                return ` ${curLabel} proj.: ${p.projCumA} pts`;
               }
               return '';
             },
@@ -234,12 +207,5 @@ export function renderCumulativeChart(host, points, opts = {}) {
   });
   // store raw points for plugin
   chartInstance.data._rawPoints = points;
-
-  // also handle projection opacity via segment styling: Chart.js segment option
-  // Make projected dataset low opacity
-  const projMeta = chartInstance.getDatasetMeta(2);
-  if (projMeta) {
-    chartInstance.data.datasets[2].borderColor = 'rgba(17,17,17,0.35)';
-  }
   chartInstance.update();
 }

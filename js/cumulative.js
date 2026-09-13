@@ -53,30 +53,17 @@ export function buildCumulative(team, curMatches, prevMatches, mapping, curTeams
     });
   }
 
-  // projected: as if remaining fixtures go same as last season (low opacity tail)
+  // no projection — x ends at last played game
   let lastPlayedIdx = -1;
   for (let i = 0; i < points.length; i++) if (points[i].isPlayed) lastPlayedIdx = i;
-  let runningProj = lastPlayedIdx >= 0 ? points[lastPlayedIdx].cumA : 0;
-  for (let i = 0; i < points.length; i++) {
-    const p = points[i];
-    if (p.isPlayed) {
-      runningProj = p.cumA;
-      p.projCumA = p.cumA;
-      p.isProjected = false;
-    } else {
-      let bPtsForProj = null;
-      if (p.prevMatch) {
-        const ftPrev = getFT(p.prevMatch.score);
-        if (ftPrev) bPtsForProj = pointsForTeam(ftPrev, p.prevMatch.team1, p.prevMatch.team2, team);
-      }
-      if (bPtsForProj === null) bPtsForProj = 0;
-      runningProj += bPtsForProj;
-      p.projCumA = runningProj;
-      p.isProjected = true;
-      p.projBpts = bPtsForProj;
-    }
-  }
-  const maxYRaw = Math.max(...points.map(p => Math.max(p.cumA, p.cumB, p.projCumA ?? 0)), 1);
-  const roundedMax = Math.max(5, Math.ceil(maxYRaw / 5) * 5);
-  return { points, maxY: roundedMax, curRows };
+  // truncate to last played (no future plateau)
+  const truncated = lastPlayedIdx >= 0 ? points.slice(0, lastPlayedIdx + 1) : [];
+  // y max at least 5 higher than current season total
+  const curMax = truncated.length ? Math.max(...truncated.map(p => p.cumA)) : 0;
+  const bothMax = truncated.length ? Math.max(...truncated.map(p => Math.max(p.cumA, p.cumB)), 1) : 1;
+  const withHeadroom = Math.max(bothMax, curMax + 5);
+  const roundedMax = Math.max(5, Math.ceil(withHeadroom / 5) * 5);
+  // keep isProjected false for all in truncated
+  for (const p of truncated) { p.isProjected = false; p.projCumA = p.cumA; }
+  return { points: truncated, maxY: roundedMax, curRows };
 }
