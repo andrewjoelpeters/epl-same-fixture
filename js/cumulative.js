@@ -53,8 +53,30 @@ export function buildCumulative(team, curMatches, prevMatches, mapping, curTeams
     });
   }
 
-  const maxY = Math.max(...points.map(p => Math.max(p.cumA, p.cumB)), 1);
-  // dynamic: round up to next 5 for readability, but keep tight for early season
-  const roundedMax = Math.max(5, Math.ceil(maxY / 5) * 5);
+  // projected: as if remaining fixtures go same as last season (low opacity tail)
+  let lastPlayedIdx = -1;
+  for (let i = 0; i < points.length; i++) if (points[i].isPlayed) lastPlayedIdx = i;
+  let runningProj = lastPlayedIdx >= 0 ? points[lastPlayedIdx].cumA : 0;
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (p.isPlayed) {
+      runningProj = p.cumA;
+      p.projCumA = p.cumA;
+      p.isProjected = false;
+    } else {
+      let bPtsForProj = null;
+      if (p.prevMatch) {
+        const ftPrev = getFT(p.prevMatch.score);
+        if (ftPrev) bPtsForProj = pointsForTeam(ftPrev, p.prevMatch.team1, p.prevMatch.team2, team);
+      }
+      if (bPtsForProj === null) bPtsForProj = 0;
+      runningProj += bPtsForProj;
+      p.projCumA = runningProj;
+      p.isProjected = true;
+      p.projBpts = bPtsForProj;
+    }
+  }
+  const maxYRaw = Math.max(...points.map(p => Math.max(p.cumA, p.cumB, p.projCumA ?? 0)), 1);
+  const roundedMax = Math.max(5, Math.ceil(maxYRaw / 5) * 5);
   return { points, maxY: roundedMax, curRows };
 }
