@@ -36,6 +36,9 @@ tbody td.sep{border-left:1px solid var(--bd)}
 tbody tr:last-child td{border-bottom:1px solid var(--bd)}
 .score{font-weight:700;letter-spacing:-.01em}
 .score.muted{color:var(--mut);font-weight:400}
+.score-cell{cursor:pointer;border-radius:2px}
+.score-cell:hover{background:#f5f3f1}
+.score-cell:active{background:#eceae6}
 .delta{display:inline-block;min-width:28px;padding:1px 4px;font-size:11px;font-weight:700;text-align:center}
 .delta.pos{color:var(--gr);background:var(--grbg)}
 .delta.neg{color:var(--rd);background:var(--rdbg)}

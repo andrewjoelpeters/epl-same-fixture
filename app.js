@@ -127,10 +127,11 @@ function writeUrl(){
 function refresh(){
   if(!teamSel.value) return;
   const cur=seasonA.value, prev=seasonB.value;
-  document.getElementById('thHomeA').textContent=shortSeason(cur);
-  document.getElementById('thHomeB').textContent=shortSeason(prev);
-  document.getElementById('thAwayA').textContent=shortSeason(cur);
-  document.getElementById('thAwayB').textContent=shortSeason(prev);
+  // left → right chronological: older (prev) then newer (cur)
+  document.getElementById('thHomeA').textContent=shortSeason(prev);
+  document.getElementById('thHomeB').textContent=shortSeason(cur);
+  document.getElementById('thAwayA').textContent=shortSeason(prev);
+  document.getElementById('thAwayB').textContent=shortSeason(cur);
   const curMatches=getEffectiveMatches(cur);
   const prevMatches=getEffectiveMatches(prev);
   const key=`${prev}->${cur}`;
@@ -155,14 +156,14 @@ function fmtDelta(d){
 
 function render(cmp, curLabel, prevLabel){
   const {thisPts,lastPts,delta,comparable,proxyCount,rows}=cmp;
-  kA.textContent=curLabel; kB.textContent=prevLabel;
-  vThis.textContent=thisPts; vLast.textContent=lastPts; vDelta.textContent=(delta>0?'+':'')+delta;
+  // left → right chronological: older (prev) then newer (cur)
+  kA.textContent=prevLabel; kB.textContent=curLabel;
+  vThis.textContent=lastPts; vLast.textContent=thisPts;
+  // keep delta as cur - prev, but vDelta stays as delta
+  vDelta.textContent=(delta>0?'+':'')+delta;
   vDelta.className='v '+(delta>0?'pos':delta<0?'neg':'neu');
-  const played = rows.filter(r=> r.ftCurH||r.ftCurA).length; // approx
-  const playedFixtures = rows.reduce((acc,r)=> (r.ftCurH?1:0)+(r.ftCurA?1:0),0);
-  // better count from cmp comparable? Use thisPts already
-  kThis.textContent=`${thisPts} pts`;
-  kLast.textContent=`${lastPts} pts`;
+  kThis.textContent=`${lastPts} pts`;
+  kLast.textContent=`${thisPts} pts`;
   kDelta.textContent=comparable?`${comparable} comp`+(proxyCount?` · ${proxyCount}p`:''):'';
   summaryNote.textContent=proxyCount?`${proxyCount}× proxy 1→18`:'';
   tableTitle.textContent=cmp.team.replace(' FC','').replace(' AFC','');
@@ -172,25 +173,27 @@ function render(cmp, curLabel, prevLabel){
   for(const r of rows){
     const oppShort=r.opp.replace(' FC','').replace(' AFC','').replace('Brighton & Hove Albion','Brighton');
     const proxBadge=r.isProxy?`<span class="badge proxy" title="${r.proxyOpp}→${r.opp}">p</span>`:'';
-    const curHKey=r.curHome?r.curHome._key:fixtureKey(cmp.team,r.opp,'');
-    const curAKey=r.curAway?r.curAway._key:fixtureKey(r.opp,cmp.team,'');
+    const curHKey=r.curHome?r.curHome._key:`new|${cmp.team}|${r.opp}`;
+    const curAKey=r.curAway?r.curAway._key:`new|${r.opp}|${cmp.team}`;
     const tr=document.createElement('tr');
+    // older (prev) on left, newer (cur) on right — years left→right
     tr.innerHTML=`
       <td>${oppShort}${proxBadge}</td>
-      <td class="sep">${fmtScore(r.ftCurH, r.curHome&&r.curHome._source==='manual')}<button class="icon-btn" data-edit="${r.curHome?r.curHome._key:`new|${cmp.team}|${r.opp}`}" title="Edit home">✎</button></td>
-      <td>${fmtScore(r.ftPrevH, false)}</td>
+      <td class="sep">${fmtScore(r.ftPrevH, false)}</td>
+      <td class="score-cell" data-edit="${curHKey}">${fmtScore(r.ftCurH, r.curHome&&r.curHome._source==='manual')}</td>
       <td>${fmtDelta(r.hDelta)}</td>
-      <td class="sep">${fmtScore(r.ftCurA, r.curAway&&r.curAway._source==='manual')}<button class="icon-btn" data-edit="${r.curAway?r.curAway._key:`new|${r.opp}|${cmp.team}`}" title="Edit away">✎</button></td>
-      <td>${fmtScore(r.ftPrevA, false)}</td>
+      <td class="sep">${fmtScore(r.ftPrevA, false)}</td>
+      <td class="score-cell" data-edit="${curAKey}">${fmtScore(r.ftCurA, r.curAway&&r.curAway._source==='manual')}</td>
       <td>${fmtDelta(r.aDelta)}</td>
       <td class="sep">${fmtDelta(r.totalDelta)}</td>
     `;
     tbody.appendChild(tr);
   }
-  // edit handlers: data-edit values that start with new| indicate new fixture
-  tbody.querySelectorAll('[data-edit]').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      const key=btn.getAttribute('data-edit');
+  tbody.querySelectorAll('[data-edit]').forEach(cell=>{
+    cell.style.cursor='pointer';
+    cell.title='Tap to edit';
+    cell.addEventListener('click',()=>{
+      const key=cell.getAttribute('data-edit');
       if(key.startsWith('new|')){
         const [,home,away]=key.split('|');
         openDialog(null, home, away);
