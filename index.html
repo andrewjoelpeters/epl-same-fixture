@@ -38,14 +38,21 @@
 
   <div class="card table-card">
     <div class="toolbar">
-      <span id="tableTitle" class="k" style="font-weight:600"></span>
-      <span id="tableMeta" class="k"></span>
+      <span id="tableTitle" class="ttl"></span>
+      <span id="tableMeta" class="meta"></span>
     </div>
     <div class="table-wrap">
       <table id="fixtureTable">
         <thead>
           <tr>
-            <th>Opp</th><th></th><th>A</th><th>B</th><th>Δ</th><th></th>
+            <th rowspan="2" style="text-align:left">Opp</th>
+            <th colspan="3" class="group sep">Home</th>
+            <th colspan="3" class="group sep">Away</th>
+            <th rowspan="2" class="sep">Tot</th>
+          </tr>
+          <tr>
+            <th id="thHomeA" class="sep">A</th><th id="thHomeB">B</th><th>Δ</th>
+            <th id="thAwayA" class="sep">A</th><th id="thAwayB">B</th><th>Δ</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
