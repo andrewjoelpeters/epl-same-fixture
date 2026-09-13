@@ -20,8 +20,18 @@ export function teamShort(canonical) {
 }
 
 export function fixtureKey(home, away, date) {
-  // date is YYYY-MM-DD
+  // legacy date-based key (kept for backward compat)
   return `${home}|${away}|${date}`.toLowerCase();
+}
+
+export function fixtureKeyGW(home, away, gameNumber) {
+  // gameNumber is 1..38 per-team chronological; if missing, fallback to home|away only
+  if (gameNumber != null && gameNumber !== '') return `${home}|${away}|${gameNumber}`.toLowerCase();
+  return `${home}|${away}`.toLowerCase();
+}
+
+export function fixtureKeyTeam(home, away) {
+  return `${home}|${away}`.toLowerCase();
 }
 
 export function pointsForTeam(ft, home, away, team) {

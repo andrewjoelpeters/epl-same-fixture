@@ -56,7 +56,7 @@ export function renderCumulativeChart(host, points, opts = {}) {
       labels,
       datasets: [
         {
-          label: `Δ vs ${prevLabel}`,
+          label: `Difference vs ${prevLabel}`,
           data: deltas,
           borderColor: '#0f7a3d',
           backgroundColor: 'transparent',
@@ -110,7 +110,7 @@ export function renderCumulativeChart(host, points, opts = {}) {
               const idx = item.dataIndex;
               const p = points[idx];
               const sign = p.delta > 0 ? `+${p.delta}` : String(p.delta);
-              return ` Δ ${sign} pts ( ${p.cumA} vs ${p.cumB} )`;
+              return ` Difference ${sign} pts ( ${p.cumA} vs ${p.cumB} )`;
             },
           },
         },
@@ -181,13 +181,6 @@ export function renderCumulativeChart(host, points, opts = {}) {
         ctx.font = '600 11px Inter, system-ui, sans-serif';
         ctx.fillStyle = last.delta > 0 ? '#0f7a3d' : last.delta < 0 ? '#b42318' : '#6b6560';
         ctx.textAlign = 'left';
-        const label = `Δ vs ${prevLabel}`;
-        // draw at right edge, vertically centered at last y
-        const rightX = chartArea.right + 4;
-        // only draw if not overlapping chart
-        if (x < chartArea.right - 20) {
-          ctx.fillText(label, chartArea.right + 6, y);
-        }
         ctx.restore();
       },
     };

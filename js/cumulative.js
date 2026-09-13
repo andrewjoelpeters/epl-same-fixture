@@ -5,11 +5,26 @@ export function buildCumulative(team, curMatches, prevMatches, mapping, curTeams
   const prevLookup = new Map();
   for (const m of prevMatches) prevLookup.set(`${m.team1}|${m.team2}`.toLowerCase(), m);
 
-  // Filter cur fixtures for team, sorted chronological by date then round
-  const curRows = curMatches
+  // Filter cur fixtures for team
+  let curRows = curMatches
     .filter(m => m.team1 === team || m.team2 === team)
-    .slice()
-    .sort((a,b) => (a.date||'').localeCompare(b.date||'') || (a.round||'').localeCompare(b.round||''));
+    .slice();
+  for (const r of curRows) {
+    if (r.gameNumber == null && r.game_number != null) r.gameNumber = r.game_number;
+    if (r.gameNumber != null) r.gameNumber = Number(r.gameNumber);
+  }
+  // Fixed 1..38 ordering: manual gameNumber occupies its slot, others fill by date
+  const withGn = curRows.filter(r => r.gameNumber != null).sort((a,b)=> a.gameNumber - b.gameNumber);
+  const withoutGn = curRows.filter(r => r.gameNumber == null).sort((a,b)=>(a.date||'').localeCompare(b.date||'') || (a.round||'').localeCompare(b.round||''));
+  const ordered = [];
+  let wi = 0;
+  for (let gn = 1; gn <= 38; gn++) {
+    const manual = withGn.find(r=>r.gameNumber===gn);
+    if (manual) ordered.push(manual);
+    else if (wi < withoutGn.length) ordered.push(withoutGn[wi++]);
+  }
+  while (wi < withoutGn.length) ordered.push(withoutGn[wi++]);
+  curRows = ordered.slice(0, 38);
 
   // If curTeams provided, ensure we include all 38 fixtures in order even if some missing? curRows already has all 38 (including unplayed with score=null). So we use it as x domain.
   // For completeness, if some fixtures missing from data, pad with opponents list
@@ -29,14 +44,14 @@ export function buildCumulative(team, curMatches, prevMatches, mapping, curTeams
     const aPts = isPlayed ? pointsForTeam(ftCur, cur.team1, cur.team2, team) : null;
     const bPts = (isPlayed && ftPrev) ? pointsForTeam(ftPrev, prev.team1, prev.team2, team) : null;
 
-    // plateau: only advance when cur played
     if (aPts !== null) cumA += aPts;
     if (aPts !== null && bPts !== null) cumB += bPts;
-    // if cur unplayed, both stay flat (do not advance)
 
+    const gameNumber = cur.gameNumber ?? cur.game_number ?? (i + 1);
     points.push({
-      x: i + 1,
+      x: Number(gameNumber),
       date: cur.date,
+      gameNumber: Number(gameNumber),
       opp,
       venue,
       aPts,
@@ -52,6 +67,8 @@ export function buildCumulative(team, curMatches, prevMatches, mapping, curTeams
       prevMatch: prev,
     });
   }
+  // ensure points sorted by x (gameNumber) for chart
+  points.sort((a,b)=> a.x - b.x);
 
   // fixed x at 38, even when unplayed — keep all points, but future not drawn
   let lastPlayedIdx = -1;

@@ -1,5 +1,5 @@
 import { fetchSeason, fetchMapping, fetchManifest } from './js/fetch-data.js';
-import { getFT, fixtureKey } from './js/normalize.js';
+import { getFT, fixtureKey, fixtureKeyTeam } from './js/normalize.js';
 import { comparePerOpponent } from './js/compare.js';
 import { mergeMatches } from './js/merge.js';
 import { loadManual, saveManual } from './js/storage.js';
@@ -17,11 +17,13 @@ const summaryNote = document.getElementById('summaryNote');
 const tableTitle = document.getElementById('tableTitle'), tableMeta = document.getElementById('tableMeta');
 const bannerHost = document.getElementById('banner-host');
 const manifestHost = document.getElementById('manifestHost');
-const addBtn = document.getElementById('addBtn'), shareBtn = document.getElementById('shareBtn'), exportBtn = document.getElementById('exportBtn');
+const shareBtn = document.getElementById('shareBtn');
+const addBtn = document.getElementById('addBtn');
+const exportBtn = document.getElementById('exportBtn');
 const importFile = document.getElementById('importFile');
 const toggleUnplayed = document.getElementById('toggleUnplayed');
 const dialog = document.getElementById('editDialog');
-const fDate = document.getElementById('fDate'), fHome = document.getElementById('fHome'), fAway = document.getElementById('fAway'), fHg = document.getElementById('fHg'), fAg = document.getElementById('fAg'), fRound = document.getElementById('fRound'), fKey = document.getElementById('fKey');
+const fGameNumber = document.getElementById('fGameNumber'), fHome = document.getElementById('fHome'), fAway = document.getElementById('fAway'), fHg = document.getElementById('fHg'), fAg = document.getElementById('fAg'), fRound = document.getElementById('fRound'), fKey = document.getElementById('fKey');
 
 let allSeasonsData = {};
 let mapping = {};
@@ -63,8 +65,8 @@ async function init(){
       bannerHost.innerHTML=`<div class="banner"><span>${shared.length} shared</span><span style="display:flex;gap:6px"><button id="applyShared" class="primary" style="padding:4px 8px;font-size:11px">Save</button><button id="dismissShared" style="padding:4px 8px;font-size:11px">Dismiss</button></span></div>`;
       document.getElementById('applyShared').onclick=()=>{
         const cur=seasonA.value; const existing=loadManual(cur);
-        const map=new Map(existing.map(e=>[fixtureKey(e.team1||e.home,e.team2||e.away,e.date),e]));
-        for(const s of shared) map.set(fixtureKey(s.team1||s.home,s.team2||s.away,s.date),s);
+        const map=new Map(existing.map(e=>[fixtureKeyTeam(e.team1||e.home,e.team2||e.away),e]));
+        for(const s of shared) map.set(fixtureKeyTeam(s.team1||s.home,s.team2||s.away),s);
         saveManual(cur,[...map.values()]); bannerHost.innerHTML='';
         const p=new URLSearchParams(location.search); p.delete('m'); history.replaceState(null,'',location.pathname+(p.toString()?'?'+p.toString():''));
         refresh();
@@ -87,10 +89,10 @@ async function init(){
     writeUrl(); refresh();
   });
   teamSel.addEventListener('change',()=>{ currentTeam=teamSel.value; writeUrl(); refresh(); });
-  addBtn.addEventListener('click',()=>openDialog(null));
-  shareBtn.addEventListener('click',copyShareLink);
-  exportBtn.addEventListener('click',exportJson);
-  importFile.addEventListener('change',importJson);
+  if (addBtn) addBtn.addEventListener('click',()=>openDialog(null));
+  if (shareBtn) shareBtn.addEventListener('click',copyShareLink);
+  if (exportBtn) exportBtn.addEventListener('click',exportJson);
+  if (importFile) importFile.addEventListener('change',importJson);
   document.getElementById('cancelBtn').addEventListener('click',()=>dialog.close());
   document.getElementById('editForm').addEventListener('submit',onSave);
   if (toggleUnplayed) toggleUnplayed.addEventListener('click',()=>{
@@ -123,7 +125,15 @@ function getEffectiveMatches(season){
     if(urlState.m){ const shared=decodeManual(urlState.m); if(shared.length) manual=shared; else manual=loadManual(season); }
     else manual=loadManual(season);
   }
-  const norm=manual.map(m=>({team1:m.team1||m.home, team2:m.team2||m.away, date:m.date, round:m.round||'Manual', score:m.score||{ft:m.ft}, _manualId:m._manualId}));
+  const norm=manual.map(m=>({
+    team1:m.team1||m.home,
+    team2:m.team2||m.away,
+    gameNumber: m.gameNumber ?? m.game_number ?? m.gw ?? null,
+    date: m.date || null,
+    round: m.round || (m.gameNumber ? `Game ${m.gameNumber}` : 'Manual'),
+    score:m.score||{ft:m.ft},
+    _manualId:m._manualId
+  }));
   return mergeMatches(base, norm, deleted);
 }
 
@@ -286,16 +296,65 @@ function render(cmp, curLabel, prevLabel){
   });
 }
 
-function openDialog(existing, presetHome, presetAway){
+function getNextGameNumber(){
+  const curMatches=getEffectiveMatches(seasonA.value);
+  const teamRows=curMatches.filter(m=>m.team1===currentTeam||m.team2===currentTeam);
+  // find max gameNumber among played, or count
+  let maxPlayed = 0;
+  for(const m of teamRows){
+    const ft=getFT(m.score);
+    if(ft){
+      const gn = m.gameNumber ?? 0;
+      if(gn>maxPlayed) maxPlayed=gn;
+    }
+  }
+  // if no gameNumber on official (they use date), use count of played as proxy
+  if(maxPlayed===0){
+    const playedCount = teamRows.filter(m=>getFT(m.score)).length;
+    return Math.min(38, playedCount+1);
+  }
+  return Math.min(38, maxPlayed+1);
+}
+function openDialog(existing, presetHome, presetAway, presetGameNumber){
   if(existing){
-    fDate.value=existing.date||''; fHome.value=existing.team1; fAway.value=existing.team2;
+    // existing has gameNumber or derive from team rows order
+    let gn = existing.gameNumber;
+    if(gn==null){
+      // derive from team's chronological order
+      const curMatches=getEffectiveMatches(seasonA.value);
+      const rows=curMatches.filter(m=>m.team1===currentTeam||m.team2===currentTeam).slice().sort((a,b)=>(a.gameNumber??999)-(b.gameNumber??999) || (a.date||'').localeCompare(b.date||''));
+      const idx=rows.findIndex(r=> r._key===existing._key || (r.team1===existing.team1 && r.team2===existing.team2));
+      gn = idx>=0 ? idx+1 : getNextGameNumber();
+    }
+    fGameNumber.value= gn ?? '';
+    fHome.value=existing.team1; fAway.value=existing.team2;
     const ft=getFT(existing.score); fHg.value=ft?ft[0]:''; fAg.value=ft?ft[1]:''; fRound.value=existing.round||''; fKey.value=existing._key;
     document.getElementById('dialogTitle').textContent='Edit';
   } else {
-    fDate.value=new Date().toISOString().slice(0,10);
+    let gn = presetGameNumber;
+    if(gn==null){
+      if(presetHome && presetAway){
+        // try to find official fixture's gameNumber for that pair
+        const curMatches=getEffectiveMatches(seasonA.value);
+        const official = curMatches.find(m=> m.team1===presetHome && m.team2===presetAway) || curMatches.find(m=> m.team1===presetAway && m.team2===presetHome);
+        if(official && official.gameNumber) gn = official.gameNumber;
+        else {
+          // fallback: find in base data
+          const base = allSeasonsData[seasonA.value]?.matches||[];
+          const teamRows=base.filter(m=> (m.team1===presetHome&&m.team2===presetAway)||(m.team1===presetAway&&m.team2===presetHome));
+          if(teamRows[0]){
+            // derive from date order
+            const allTeamRows=base.filter(m=>m.team1===currentTeam||m.team2===currentTeam).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+            const idx=allTeamRows.findIndex(r=> (r.team1===presetHome&&r.team2===presetAway)||(r.team1===presetAway&&r.team2===presetHome));
+            gn = idx>=0 ? idx+1 : getNextGameNumber();
+          } else gn = getNextGameNumber();
+        }
+      } else gn = getNextGameNumber();
+    }
+    fGameNumber.value= gn ?? '';
     if(presetHome && presetAway){ fHome.value=presetHome; fAway.value=presetAway; }
     else { fHome.value=currentTeam; const teams=teamsBySeason[seasonA.value]||[]; fAway.value=teams.find(t=>t!==currentTeam)||teams[0]||''; }
-    fHg.value=''; fAg.value=''; fRound.value='Manual'; fKey.value='';
+    fHg.value=''; fAg.value=''; fRound.value=''; fKey.value='';
     document.getElementById('dialogTitle').textContent='Add';
   }
   dialog.showModal();
@@ -303,18 +362,22 @@ function openDialog(existing, presetHome, presetAway){
 function onSave(e){
   e.preventDefault();
   const cur=seasonA.value;
-  const home=fHome.value, away=fAway.value, date=fDate.value, hg=Number(fHg.value), ag=Number(fAg.value), round=fRound.value||'Manual', oldKey=fKey.value;
+  const home=fHome.value, away=fAway.value, gameNumber=Number(fGameNumber.value), hg=Number(fHg.value), ag=Number(fAg.value), oldKey=fKey.value;
   if(home===away) return alert('Home ≠ Away');
-  if(!date||isNaN(hg)||isNaN(ag)) return alert('Fill date/scores');
+  if(!gameNumber||isNaN(hg)||isNaN(ag)||gameNumber<1||gameNumber>38) return alert('Fill game number (1-38) and scores');
   const manual=loadManual(cur);
-  const newKey=fixtureKey(home,away,date);
+  const newKey=fixtureKeyTeam(home,away);
+  // handle legacy date-based keys stored previously
   if(oldKey && oldKey!==newKey){
-    const i=manual.findIndex(x=>fixtureKey(x.team1||x.home,x.team2||x.away,x.date)===oldKey);
+    // try team key first, fallback to legacy date-based
+    let i=manual.findIndex(x=>fixtureKeyTeam(x.team1||x.home,x.team2||x.away)===oldKey);
+    if(i===-1) i=manual.findIndex(x=>fixtureKey(x.team1||x.home,x.team2||x.away,x.date)===oldKey);
     if(i!==-1) manual.splice(i,1);
     const d=loadDeleted(cur); if(d.has(oldKey)){ d.delete(oldKey); saveDeleted(cur,d); }
   }
-  const idx=manual.findIndex(x=>fixtureKey(x.team1||x.home,x.team2||x.away,x.date)===newKey);
-  const rec={team1:home,team2:away,date,round,score:{ft:[hg,ag]},ft:[hg,ag],_manualId:newKey};
+  let idx=manual.findIndex(x=>fixtureKeyTeam(x.team1||x.home,x.team2||x.away)===newKey);
+  if(idx===-1) idx=manual.findIndex(x=> (x.team1===home&&x.team2===away)||(x.team1===away&&x.team2===home) && false); // ensure not double count
+  const rec={team1:home,team2:away,gameNumber,round:`Game ${gameNumber}`,score:{ft:[hg,ag]},ft:[hg,ag],_manualId:newKey};
   if(idx!==-1) manual[idx]=rec; else manual.push(rec);
   const d2=loadDeleted(cur); if(d2.has(newKey)){ d2.delete(newKey); saveDeleted(cur,d2); }
   saveManual(cur,manual); dialog.close(); refresh(); writeUrl();
@@ -329,7 +392,7 @@ async function copyShareLink(){
   if(enc){ if(enc.length>1800) return alert('Too large — Export instead'); url.searchParams.set('m',enc);} else url.searchParams.delete('m');
   url.searchParams.set('a',seasonA.value); url.searchParams.set('b',seasonB.value); url.searchParams.set('team',currentTeam);
   url.searchParams.delete('season');
-  try{ await navigator.clipboard.writeText(url.toString()); shareBtn.textContent='Copied'; setTimeout(()=>shareBtn.textContent='Share',1200);}catch{ prompt('Copy:',url.toString()); }
+  try{ await navigator.clipboard.writeText(url.toString()); const orig=shareBtn.textContent; shareBtn.textContent='copied'; setTimeout(()=>shareBtn.textContent=orig,1200);}catch{ prompt('Copy:',url.toString()); }
 }
 function exportJson(){
   const cur=seasonA.value; const manual=loadManual(cur);
