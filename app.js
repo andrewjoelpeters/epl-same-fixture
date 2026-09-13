@@ -143,15 +143,31 @@ function refresh(){
   render(cmp, cur, prev);
 }
 
-function fmtScore(ft, isManual){
+function wdlClass(pts){
+  if(pts===3) return 'score-w';
+  if(pts===1) return 'score-d';
+  if(pts===0) return 'score-l';
+  return '';
+}
+function fmtScore(ft, pts, isManual, isUnplayed){
   if(!ft) return `<span class="score muted">—</span>`;
   const s=`${ft[0]}–${ft[1]}`;
   return `<span class="score">${s}</span>${isManual?'<span class="badge manual">m</span>':''}`;
 }
-function fmtDelta(d){
+function deltaClass(d, isTotal){
+  if(d===null||d===undefined) return 'zero';
+  if(d===0) return 'zero';
+  const m=Math.abs(d);
+  const mag = m>=3?3: m===2?2:1;
+  // total gets one step higher saturation where possible
+  const eff = isTotal && mag<3 ? mag+1 : mag;
+  return (d>0?'p':'n')+eff;
+}
+function fmtDelta(d, isTotal){
   if(d===null||d===undefined) return `<span class="delta zero">–</span>`;
   if(d===0) return `<span class="delta zero">0</span>`;
-  return `<span class="delta ${d>0?'pos':'neg'}">${d>0?`+${d}`:d}</span>`;
+  const cls=deltaClass(d, isTotal);
+  return `<span class="delta ${cls}">${d>0?`+${d}`:d}</span>`;
 }
 
 function render(cmp, curLabel, prevLabel){
@@ -175,17 +191,23 @@ function render(cmp, curLabel, prevLabel){
     const proxBadge=r.isProxy?`<span class="badge proxy" title="${r.proxyOpp}→${r.opp}">p</span>`:'';
     const curHKey=r.curHome?r.curHome._key:`new|${cmp.team}|${r.opp}`;
     const curAKey=r.curAway?r.curAway._key:`new|${r.opp}|${cmp.team}`;
+    const isRowPending = !r.ftCurH && !r.ftCurA;
+    const prevHWdl = wdlClass(r.prevHomePts);
+    const curHWdl = r.ftCurH ? wdlClass(r.curHomePts) : 'score-unplayed';
+    const prevAWdl = wdlClass(r.prevAwayPts);
+    const curAWdl = r.ftCurA ? wdlClass(r.curAwayPts) : 'score-unplayed';
     const tr=document.createElement('tr');
+    if(isRowPending) tr.classList.add('row-pending');
     // older (prev) on left, newer (cur) on right — years left→right
     tr.innerHTML=`
       <td>${oppShort}${proxBadge}</td>
-      <td class="sep">${fmtScore(r.ftPrevH, false)}</td>
-      <td class="score-cell" data-edit="${curHKey}">${fmtScore(r.ftCurH, r.curHome&&r.curHome._source==='manual')}</td>
-      <td>${fmtDelta(r.hDelta)}</td>
-      <td class="sep">${fmtScore(r.ftPrevA, false)}</td>
-      <td class="score-cell" data-edit="${curAKey}">${fmtScore(r.ftCurA, r.curAway&&r.curAway._source==='manual')}</td>
-      <td>${fmtDelta(r.aDelta)}</td>
-      <td class="sep">${fmtDelta(r.totalDelta)}</td>
+      <td class="sep ${r.ftPrevH?prevHWdl:''}">${fmtScore(r.ftPrevH, r.prevHomePts, false, false)}</td>
+      <td class="score-cell ${curHWdl}" data-edit="${curHKey}">${fmtScore(r.ftCurH, r.curHomePts, r.curHome&&r.curHome._source==='manual', !r.ftCurH)}</td>
+      <td>${fmtDelta(r.hDelta, false)}</td>
+      <td class="sep ${r.ftPrevA?prevAWdl:''}">${fmtScore(r.ftPrevA, r.prevAwayPts, false, false)}</td>
+      <td class="score-cell ${curAWdl}" data-edit="${curAKey}">${fmtScore(r.ftCurA, r.curAwayPts, r.curAway&&r.curAway._source==='manual', !r.ftCurA)}</td>
+      <td>${fmtDelta(r.aDelta, false)}</td>
+      <td class="sep">${fmtDelta(r.totalDelta, true)}</td>
     `;
     tbody.appendChild(tr);
   }
