@@ -241,7 +241,7 @@ function wdlDot(pts){
   return `<span class="wdl ${c}" title="${t}"></span>`;
 }
 function fmtScore(ft, pts, isManual, isUnplayed){
-  if(!ft) return `<span class="score muted">—</span>`;
+  if(!ft) return '';
   const s=`${ft[0]}–${ft[1]}`;
   return `${isManual?'<span class="badge manual">m</span>':''}${wdlDot(pts)}<span class="score">${s}</span>`;
 }
@@ -249,7 +249,7 @@ function proxyTitleAttr(oppFull, proxyFull, prevLabel){
   return ` title="${oppShort(oppFull)} promoted — showing ${oppShort(proxyFull)}'s ${prevLabel} fixtures"`;
 }
 function fmtScorePlain(ft){
-  if(!ft) return `<span class="score muted">—</span>`;
+  if(!ft) return '';
   return `<span class="score">${ft[0]}–${ft[1]}</span>`;
 }
 function deltaClass(d, isTotal){
@@ -261,7 +261,7 @@ function deltaClass(d, isTotal){
   return (d>0?'p':'n')+eff;
 }
 function fmtDeltaVenue(d, curPts, prevPts){
-  if(d===null||d===undefined) return `<span class="delta zero">–</span>`;
+  if(d===null||d===undefined) return '';
   if(d===0){
     const isMax = curPts===3 && prevPts===3;
     return `<span class="delta ${isMax?'zero-max':'zero'}">0</span>`;
@@ -270,7 +270,7 @@ function fmtDeltaVenue(d, curPts, prevPts){
   return `<span class="delta ${cls}">${d>0?`+${d}`:d}</span>`;
 }
 function fmtDeltaTotal(d, row){
-  if(d===null||d===undefined) return `<span class="delta zero">–</span>`;
+  if(d===null||d===undefined) return '';
   if(d===0){
     const homePlayed = row.ftCurH !== null;
     const awayPlayed = row.ftCurA !== null;
@@ -372,7 +372,6 @@ function render(cmp, curLabel, prevLabel, order){
               <div class="venue-label"><span>Home</span>${fmtDeltaVenue(r.hDelta, r.curHomePts, r.prevHomePts)}</div>
               <div class="venue-scores">
                 <span>${hPrev}</span>
-                <span style="font-size:11px;color:var(--mut)">→</span>
                 <span class="score-cell" data-edit="${curHKey}">${hCur}</span>
               </div>
             </div>
@@ -380,7 +379,6 @@ function render(cmp, curLabel, prevLabel, order){
               <div class="venue-label"><span>Away</span>${fmtDeltaVenue(r.aDelta, r.curAwayPts, r.prevAwayPts)}</div>
               <div class="venue-scores">
                 <span>${aPrev}</span>
-                <span style="font-size:11px;color:var(--mut)">→</span>
                 <span class="score-cell" data-edit="${curAKey}">${aCur}</span>
               </div>
             </div>
@@ -389,13 +387,16 @@ function render(cmp, curLabel, prevLabel, order){
         cardList.appendChild(card);
       }
     } else {
+      const head=document.createElement('div');
+      head.className='tidy-head';
+      head.innerHTML=`<span>Opponent</span><span class="num">${shortSeason(prevLabel)}</span><span class="num">${shortSeason(curLabel)}</span><span class="num">+/-</span>`;
+      cardList.appendChild(head);
       for(const f of tidy){
         const row=document.createElement('div');
         row.className='tidy-row'+(!f.ftCur?' pending':'');
         row.innerHTML=`
           <span class="tidy-opp"${f.isProxy?proxyTitleAttr(f.opp,f.proxyOpp,prevLabel):''}>${f.oppShort}<span class="venue-tag">${f.venue}</span></span>
           <span class="tidy-prev">${wdlDot(f.prevPts)}${fmtScorePlain(f.ftPrev)}</span>
-          <span class="tidy-arrow">→</span>
           <span class="score-cell tidy-cur" data-edit="${f.key}">${fmtScore(f.ftCur, f.curPts, f.curMatch&&f.curMatch._source==='manual')}</span>
           <span class="tidy-delta">${fmtDeltaVenue(f.delta, f.curPts, f.prevPts)}</span>
         `;
@@ -404,7 +405,7 @@ function render(cmp, curLabel, prevLabel, order){
     }
     if(cardList.children.length===0){
       const d=document.createElement('div');
-      d.style.cssText='text-align:center;padding:14px;color:var(--mut);font-size:13px';
+      d.style.cssText='grid-column:1/-1;text-align:center;padding:14px;color:var(--mut);font-size:13px';
       d.textContent='No fixtures found for this team.';
       cardList.appendChild(d);
     }

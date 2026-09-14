@@ -87,19 +87,21 @@ main{max-width:var(--max);margin:0 auto;padding:16px var(--gutter) 36px}
 .chart-tip b.neu{color:#fff}
 @media(min-width:640px){#chartHost{height:220px}#chartHost svg{height:220px}}
 
-/* ── Card list (mobile) ── */
-.card-list{display:grid;gap:8px}
+/* ── Card list (mobile): one shared grid so rows + header align like a table ── */
+.card-list{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;column-gap:8px;row-gap:8px;align-items:center}
+.tidy-head{display:grid;grid-template-columns:subgrid;grid-column:1/-1;padding:0 12px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--mut)}
+.tidy-head .num{text-align:right}
 /* Tidy rows: one per opponent per venue, older season left */
-.tidy-row{display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;align-items:center;border:1px solid var(--bd);border-radius:var(--radius-sm);background:var(--paper);padding:9px 11px}
-.tidy-row.pending{opacity:.72;background:#fcfcfb;border-style:dashed}
+.tidy-row{display:grid;grid-template-columns:subgrid;grid-column:1/-1;align-items:center;border:1px solid var(--bd);border-radius:var(--radius-sm);background:var(--paper);padding:9px 11px}
+.tidy-row.pending{background:#f4f3f1;border-style:dashed}
 .tidy-opp{font-size:14px;font-weight:700;letter-spacing:-.01em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .venue-tag{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 5px;margin-left:7px;font-size:10px;font-weight:800;letter-spacing:.05em;color:var(--mut);background:var(--zero);border:1px solid var(--bd2);border-radius:6px;vertical-align:1px}
-.tidy-prev,.tidy-cur{font-variant-numeric:tabular-nums}
-.tidy-arrow{font-size:11px;color:var(--mut2)}
-.tidy-delta{margin-left:2px}
+.tidy-prev,.tidy-cur{font-variant-numeric:tabular-nums;text-align:right}
+.tidy-delta{margin-left:2px;text-align:right}
+.score-cell:empty{display:inline-block;min-width:26px;min-height:18px;vertical-align:middle}
 .venue-cell{text-align:center;font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--mut)}
-.opp-card{border:1px solid var(--bd);border-radius:var(--radius-sm);background:var(--paper);padding:10px 11px 9px}
-.opp-card.pending{opacity:.72;background:#fcfcfb;border-style:dashed}
+.opp-card{grid-column:1/-1;border:1px solid var(--bd);border-radius:var(--radius-sm);background:var(--paper);padding:10px 11px 9px}
+.opp-card.pending{background:#f4f3f1;border-style:dashed}
 .opp-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:7px}
 .opp-name{font-size:14px;font-weight:700;letter-spacing:-.01em}
 .opp-meta{font-size:11px;color:var(--mut)}
@@ -149,7 +151,7 @@ tbody td.sep{border-left:none}
 tbody tr:last-child td{border-bottom:none}
 .table-wrap .score{font-size:13px}
 .table-wrap .score-cell{padding:2px 4px}
-.row-pending{opacity:.65}
+.row-pending td{background-color:#f5f4f2}
 .detail-foot{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--bd3);font-size:11px;color:var(--mut)}
 .proxy-legend{font-size:11px;color:var(--mut)}
 
