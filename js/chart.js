@@ -96,10 +96,12 @@ export function renderCumulativeChart(host, points, opts = {}) {
     let lastPlayedIdx = -1;
     sorted.forEach((p,i)=>{ if(p.isPlayed) lastPlayedIdx=i; });
     const solid = lastPlayedIdx>=0 ? sorted.slice(0, lastPlayedIdx+1).filter(p=>p.delta!==null) : [];
+    // anchor the line at the origin (1, 0): before any game the difference is definitionally zero
+    const anchored = solid.length && !(solid[0].x===1 && solid[0].delta===0) ? [{x:1, delta:0}, ...solid] : solid;
     // build segmented path colored by sign (split at zero crossing)
     const segs = [];
-    for(let i=1;i<solid.length;i++){
-      const a=solid[i-1], b=solid[i];
+    for(let i=1;i<anchored.length;i++){
+      const a=anchored[i-1], b=anchored[i];
       if(a.delta===null||b.delta===null) continue;
       // if straddles zero, split at y=0
       if((a.delta>0 && b.delta<0) || (a.delta<0 && b.delta>0)){
