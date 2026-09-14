@@ -120,7 +120,8 @@ export function renderCumulativeChart(host, points, opts = {}) {
       }
     }
     segs.forEach(s=>{ svg+=`<line x1="${s.x1}" y1="${s.y1}" x2="${s.x2}" y2="${s.y2}" stroke="${s.col}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`; });
-    // dots
+    // dots (the origin gets a hover target but no dot — it isn't a game)
+    if (solid.length) hits.push({cx:xScale(0), cy:yScale(0), origin:true});
     solid.forEach(p=>{
       const col = p.delta>0?'#0f7a3d':p.delta<0?'#b42318':'#6b6560';
       svg+=`<circle cx="${xScale(p.x)}" cy="${yScale(p.delta)}" r="4" fill="${col}" stroke="#fff" stroke-width="1.2"/>`;
@@ -140,18 +141,22 @@ export function renderCumulativeChart(host, points, opts = {}) {
   const showTip = (i) => {
     const h = hits[i];
     if (!h) return;
-    const p = h.p;
-    const oppS = esc((p.opp || '').replace(' FC', '').replace(' AFC', ''));
-    const ftP = p.ftPrev ? `${p.ftPrev[0]}–${p.ftPrev[1]}` : '—';
-    const ftC = p.ftCur ? `${p.ftCur[0]}–${p.ftCur[1]}` : '—';
-    const vd = (p.aPts != null && p.bPts != null) ? p.aPts - p.bPts : null;
-    const vdT = vd == null ? '–' : signed(vd);
-    const dT = signed(p.delta);
-    const cls = p.delta > 0 ? 'pos' : p.delta < 0 ? 'neg' : 'neu';
-    tip.innerHTML = `
-      <div class="tip-title">Game ${p.x} · ${oppS} ${p.venue}</div>
-      <div class="tip-scores">${ftP} <span class="tip-arrow">→</span> ${ftC} <b class="${cls}">${vdT}</b></div>
-      <div class="tip-total">Total ${p.cumA} vs ${p.cumB} <b class="${cls}">(${dT})</b></div>`;
+    if (h.origin) {
+      tip.innerHTML = `<div class="tip-title">Start of season, zero points</div>`;
+    } else {
+      const p = h.p;
+      const oppS = esc((p.opp || '').replace(' FC', '').replace(' AFC', ''));
+      const ftP = p.ftPrev ? `${p.ftPrev[0]}–${p.ftPrev[1]}` : '—';
+      const ftC = p.ftCur ? `${p.ftCur[0]}–${p.ftCur[1]}` : '—';
+      const vd = (p.aPts != null && p.bPts != null) ? p.aPts - p.bPts : null;
+      const vdT = vd == null ? '–' : signed(vd);
+      const dT = signed(p.delta);
+      const cls = p.delta > 0 ? 'pos' : p.delta < 0 ? 'neg' : 'neu';
+      tip.innerHTML = `
+        <div class="tip-title">Game ${p.x} · ${oppS} ${p.venue}</div>
+        <div class="tip-scores">${ftP} <span class="tip-arrow">→</span> ${ftC} <b class="${cls}">${vdT}</b></div>
+        <div class="tip-total">Total ${p.cumA} vs ${p.cumB} <b class="${cls}">(${dT})</b></div>`;
+    }
     tip.style.display = 'block';
     const rect = host.getBoundingClientRect();
     const kx = rect.width ? rect.width / W : 1;
