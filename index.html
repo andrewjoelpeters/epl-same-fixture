@@ -3,86 +3,132 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>EPL Same Fixture</title>
+  <title>Same Fixture — Premier League</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700;8..60,800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <script type="importmap">
-  {
-    "imports": {
-      "chart.js": "https://cdn.jsdelivr.net/npm/chart.js@4.4.8/+esm"
-    }
-  }
-  </script>
 </head>
 <body>
-<header>
-  <h1>EPL Same Fixture</h1>
-</header>
-<main>
-  <div id="banner-host"></div>
+<div class="page">
+  <main>
+    <!-- Sentence controls -->
+    <section class="controls" aria-label="Comparison controls">
+      <div class="sentence">
+        <div class="sentence-row">
+          <span class="s-word">For</span>
+          <label class="pill pill-team"><span class="pill-k">club</span><select id="teamSel"></select></label>
+        </div>
+        <div class="sentence-row">
+          <span class="s-word">compare</span>
+          <label class="pill"><span class="pill-k">season</span><select id="seasonA"></select></label>
+          <span class="s-word">to</span>
+          <label class="pill"><span class="pill-k">season</span><select id="seasonB"></select></label>
+        </div>
+      </div>
+    </section>
 
-  <div class="card controls">
-    <div class="ctrl-grid">
-      <label>Season B <select id="seasonB"></select></label>
-      <label>Season A <select id="seasonA"></select></label>
-      <label class="team-label">Team <select id="teamSel"></select></label>
-    </div>
-  </div>
+    <!-- Hero answer: 3 lines only -->
+    <section class="hero" aria-live="polite">
+      <div class="hero-top">
+        <div class="hero-main">
+          <div id="vDelta" class="hero-delta neu">–</div>
+          <div id="heroWord" class="hero-word"></div>
+        </div>
+        <div class="hero-side">
+          <div id="kLast" class="hero-line"></div>
+          <div id="kThis" class="hero-line"></div>
+        </div>
+      </div>
+    </section>
 
-  <div class="card summary-card">
-    <div class="summary">
-      <div><div class="k" id="kA">2026-27</div><div class="v" id="vThis">–</div><div class="k" id="kThis">0 pts</div></div>
-      <div><div class="k" id="kB">2025-26</div><div class="v" id="vLast">–</div><div class="k" id="kLast">0 pts</div></div>
-      <div><div class="k">Difference</div><div class="v neu" id="vDelta">–</div><div class="k" id="kDelta"></div></div>
-    </div>
-  </div>
+    <!-- Chart -->
+    <section class="panel chart-panel">
+      <div class="panel-head">
+        <h2>Cumulative difference</h2>
+        <div class="panel-head-right">
+          <div class="chart-toggle" role="tablist" aria-label="Chart mode">
+            <button id="chartBtnDelta" class="seg active" role="tab" aria-selected="true">Delta</button>
+            <button id="chartBtnDual" class="seg" role="tab" aria-selected="false">Both seasons</button>
+          </div>
+        </div>
+      </div>
+      <div id="chartHost"></div>
+    </section>
 
-  <div class="card chart-card">
-    <div class="toolbar"><span class="ttl">Cumulative</span><span class="meta" id="chartMeta"></span></div>
-    <div id="chartHost" style="height:160px"></div>
-  </div>
+    <!-- Detail: cards on mobile, table on desktop -->
+    <section class="panel detail-panel">
+      <div class="panel-head">
+        <h2>By opponent</h2>
+        <div class="panel-head-right">
+          <div class="chart-toggle" role="tablist" aria-label="Sort order">
+            <button id="sortSchedule" class="seg active" role="tab" aria-selected="true">Schedule</button>
+            <button id="sortName" class="seg" role="tab" aria-selected="false">A–Z</button>
+          </div>
+          <button id="toggleGroup" class="toggle-link">Group Home &amp; Away</button>
+        </div>
+        <span id="tableTitle" hidden></span>
+      </div>
 
-  <div class="card table-card">
-    <div class="toolbar">
-      <span id="tableTitle" class="ttl"></span>
-      <span style="display:flex;gap:8px;align-items:center"><span id="tableMeta" class="meta"></span><button id="toggleUnplayed" class="toggle-link" style="display:none"></button></span>
-    </div>
-    <div class="table-wrap">
-      <table id="fixtureTable">
-        <thead>
-          <tr>
-            <th rowspan="2" style="text-align:left">Opp</th>
-            <th colspan="3" class="group sep">Home</th>
-            <th colspan="3" class="group sep">Away</th>
-            <th rowspan="2" class="sep">Tot</th>
-          </tr>
-          <tr>
-            <th id="thHomeA" class="sep">A</th><th id="thHomeB">B</th><th>Difference</th>
-            <th id="thAwayA" class="sep">A</th><th id="thAwayB">B</th><th>Difference</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div>
-  </div>
+      <!-- Mobile cards -->
+      <div id="cardList" class="card-list" aria-label="Opponents"></div>
 
-  <span id="manifestHost" style="display:none"></span>
-  <footer><button id="shareBtn" class="text-link">share current view</button> · <a href="https://github.com/andrewjoelpeters/epl-same-fixture">github</a></footer>
-</main>
+      <!-- Desktop table -->
+      <div class="table-wrap">
+        <table id="fixtureTable">
+          <thead id="thead">
+            <tr>
+              <th style="text-align:left">Opponent</th>
+              <th style="text-align:center">H/A</th>
+              <th class="num" id="thPrev">Last</th>
+              <th class="num" id="thCur">This</th>
+              <th class="num">+/-</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="detail-foot">
+        <span class="score-hint">Tap any score to add or edit a result.</span>
+        <span class="proxy-legend" id="proxyLegend"></span>
+      </div>
+    </section>
+
+    <details class="method">
+      <summary>How this works &amp; data</summary>
+      <div class="method-body">
+        <p>Strict home/away matching. If you played Burnley at home this year and Leicester at home last year, we compare them only when Burnley was the promoted side mapped to Leicester (Champ 1→ PL 18, 2→19, 3→20). Table positions come from <code>openfootball/football.json</code>.</p>
+        <p id="manifestLine" class="meta"></p>
+        <p><span id="manifestHost" style="display:none"></span></p>
+      </div>
+    </details>
+
+    <footer class="site-footer">
+      <button id="shareBtn" class="text-link">Share this view</button>
+      <span class="dot">·</span>
+      <a href="https://github.com/andrewjoelpeters/epl-same-fixture">GitHub</a>
+    </footer>
+  </main>
+</div>
 
 <dialog id="editDialog">
   <form method="dialog" id="editForm">
-    <h3 id="dialogTitle">Add result</h3>
-    <div class="form-grid">
-      <label>Game<input type="number" id="fGameNumber" min="1" max="38" required></label>
-      <label>Home<select id="fHome" required></select></label>
-      <label>Away<select id="fAway" required></select></label>
-      <label>Hg<input type="number" id="fHg" min="0" max="20" required></label>
-      <label>Ag<input type="number" id="fAg" min="0" max="20" required></label>
-      <input type="hidden" id="fKey">
-      <input type="hidden" id="fRound">
+    <div class="dialog-head">
+      <h3 id="dialogTitle">Add result</h3>
+      <button type="button" id="cancelBtn" class="icon-close" aria-label="Close">×</button>
     </div>
+    <p id="fixtureLine" class="fixture-line"></p>
+    <div class="score-grid">
+      <label><span id="homeName">Home</span><input type="number" id="fHg" min="0" max="20" inputmode="numeric" required autofocus></label>
+      <label><span id="awayName">Away</span><input type="number" id="fAg" min="0" max="20" inputmode="numeric" required></label>
+    </div>
+    <input type="hidden" id="fGameNumber">
+    <input type="hidden" id="fHome">
+    <input type="hidden" id="fAway">
+    <input type="hidden" id="fKey">
+    <input type="hidden" id="fRound">
     <div class="form-actions">
-      <button type="button" id="cancelBtn">Cancel</button>
+      <button type="button" id="cancelBtn2" class="ghost">Cancel</button>
       <button class="primary" type="submit">Save</button>
     </div>
   </form>
