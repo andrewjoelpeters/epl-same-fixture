@@ -229,8 +229,8 @@ function render(cmp, curLabel, prevLabel){
   vDelta.className='v '+(delta>0?'pos':delta<0?'neg':'neu');
   kThis.textContent=`${lastPts} pts`;
   kLast.textContent=`${thisPts} pts`;
-  kDelta.textContent=comparable?`${comparable} comp`+(proxyCount?` · ${proxyCount}p`:''):'';
-  summaryNote.textContent=proxyCount?`${proxyCount}× proxy 1→18`:'';
+  kDelta.textContent=comparable?`${comparable} comp`:'';
+  if (summaryNote) summaryNote.textContent='';
   tableTitle.textContent=cmp.team.replace(' FC','').replace(' AFC','');
   tableMeta.textContent=`${rows.length} opps · ${comparable} comp`;
 
