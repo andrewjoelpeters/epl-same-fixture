@@ -15,8 +15,8 @@ export function renderCumulativeChart(host, points, opts = {}) {
   const iw = W - m.left - m.right;
   const ih = H - m.top - m.bottom;
 
-  // x: 1..38 fixed
-  const xMin = 1, xMax = 38;
+  // x domain starts at 0 so the origin sits left of game 1; games at 1..38, ticks evens only
+  const xMin = 0, xMax = 38;
   const xScale = (x) => m.left + ((x - xMin) / (xMax - xMin)) * iw;
 
   // y
@@ -96,8 +96,9 @@ export function renderCumulativeChart(host, points, opts = {}) {
     let lastPlayedIdx = -1;
     sorted.forEach((p,i)=>{ if(p.isPlayed) lastPlayedIdx=i; });
     const solid = lastPlayedIdx>=0 ? sorted.slice(0, lastPlayedIdx+1).filter(p=>p.delta!==null) : [];
-    // anchor the line at the origin (1, 0): before any game the difference is definitionally zero
-    const anchored = solid.length && !(solid[0].x===1 && solid[0].delta===0) ? [{x:1, delta:0}, ...solid] : solid;
+    // anchor the line at the origin (0, 0): before any game the difference is definitionally zero.
+    // The origin gets its own x left of game 1 so the first segment travels diagonally instead of vertically.
+    const anchored = solid.length ? [{x:0, delta:0}, ...solid] : solid;
     // build segmented path colored by sign (split at zero crossing)
     const segs = [];
     for(let i=1;i<anchored.length;i++){
