@@ -33,6 +33,7 @@ const cardList = document.getElementById('cardList');
 const proxyLegend = document.getElementById('proxyLegend');
 const chartBtnDelta = document.getElementById('chartBtnDelta');
 const chartBtnDual = document.getElementById('chartBtnDual');
+const chartTitle = document.getElementById('chartTitle');
 
 let allSeasonsData = {};
 let mapping = {};
@@ -192,6 +193,7 @@ function syncChartToggle(){
   chartBtnDelta.setAttribute('aria-selected', chartMode==='delta');
   chartBtnDual.classList.toggle('active', chartMode==='dual');
   chartBtnDual.setAttribute('aria-selected', chartMode==='dual');
+  if(chartTitle) chartTitle.textContent = chartMode==='dual' ? 'Total points' : 'Cumulative difference';
 }
 function setSortMode(m){
   sortMode=m;

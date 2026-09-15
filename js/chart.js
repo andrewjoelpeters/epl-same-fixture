@@ -63,6 +63,9 @@ export function renderCumulativeChart(host, points, opts = {}) {
     let lastPlayedIdx = -1;
     pts.forEach((p,i)=>{ if(p.isPlayed) lastPlayedIdx=i; });
     const played = pts.slice(0, lastPlayedIdx+1);
+    // origin anchor (0, 0): both totals start at zero — line only, no dot
+    const anchored = played.length ? [{x:0, cumA:0, cumB:0}, ...played] : played;
+    if (played.length) hits.push({cx:xScale(0), cy:yScale(0), origin:true});
 
     const lineFor = (key, arr, color, width, opacity) => {
       if (arr.length < 1) return '';
@@ -72,14 +75,14 @@ export function renderCumulativeChart(host, points, opts = {}) {
       return `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity}"/>`;
     };
     // prev (muted)
-    svg += lineFor('cumB', played, '#9a9590', 1.6, .95);
+    svg += lineFor('cumB', anchored, '#9a9590', 3.2, .95);
     // cur (accent blue / ink)
-    svg += lineFor('cumA', played, '#1a4fb3', 2.1, 1);
+    svg += lineFor('cumA', anchored, '#1a4fb3', 4.2, 1);
 
     // dots for played
     played.forEach(p=>{
-      svg += `<circle cx="${xScale(p.x)}" cy="${yScale(p.cumB)}" r="2.2" fill="#9a9590" stroke="#fff" stroke-width="1"/>`;
-      svg += `<circle cx="${xScale(p.x)}" cy="${yScale(p.cumA)}" r="2.6" fill="#1a4fb3" stroke="#fff" stroke-width="1"/>`;
+      svg += `<circle cx="${xScale(p.x)}" cy="${yScale(p.cumB)}" r="4.4" fill="#9a9590" stroke="#fff" stroke-width="1"/>`;
+      svg += `<circle cx="${xScale(p.x)}" cy="${yScale(p.cumA)}" r="5.2" fill="#1a4fb3" stroke="#fff" stroke-width="1"/>`;
       hits.push({cx:xScale(p.x), cy:yScale(p.cumA), p});
     });
     // legend
