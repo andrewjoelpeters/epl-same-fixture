@@ -69,20 +69,20 @@ export function renderCumulativeChart(host, points, opts = {}) {
 
     const lineFor = (key, arr, color, width, opacity) => {
       if (arr.length < 1) return '';
-      if (arr.length === 1) return `<circle cx="${xScale(arr[0].x)}" cy="${yScale(arr[0][key])}" r="2.5" fill="${color}" opacity="${opacity}"/>`;
+      if (arr.length === 1) return `<circle cx="${xScale(arr[0].x)}" cy="${yScale(arr[0][key])}" r="5.2" fill="${color}" opacity="${opacity}"/>`;
       let d = `M ${xScale(arr[0].x)} ${yScale(arr[0][key])}`;
       for (let i=1;i<arr.length;i++) d += ` L ${xScale(arr[i].x)} ${yScale(arr[i][key])}`;
       return `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity}"/>`;
     };
-    // prev (muted)
-    svg += lineFor('cumB', anchored, '#9a9590', 3.2, .95);
+    // prev (muted) — same geometry as current; color alone distinguishes the seasons
+    svg += lineFor('cumB', anchored, '#9a9590', 4.2, .95);
     // cur (accent blue / ink)
     svg += lineFor('cumA', anchored, '#1a4fb3', 4.2, 1);
 
     // dots for played
     played.forEach(p=>{
-      svg += `<circle cx="${xScale(p.x)}" cy="${yScale(p.cumB)}" r="4.4" fill="#9a9590" stroke="#fff" stroke-width="1"/>`;
-      svg += `<circle cx="${xScale(p.x)}" cy="${yScale(p.cumA)}" r="5.2" fill="#1a4fb3" stroke="#fff" stroke-width="1"/>`;
+      svg += `<circle cx="${xScale(p.x)}" cy="${yScale(p.cumB)}" r="5.2" fill="#9a9590" stroke="#fff" stroke-width="1.2"/>`;
+      svg += `<circle cx="${xScale(p.x)}" cy="${yScale(p.cumA)}" r="5.2" fill="#1a4fb3" stroke="#fff" stroke-width="1.2"/>`;
       hits.push({cx:xScale(p.x), cy:yScale(p.cumA), p});
     });
     // legend
@@ -122,12 +122,12 @@ export function renderCumulativeChart(host, points, opts = {}) {
         segs.push({x1:xScale(a.x),y1:yScale(a.delta),x2:xScale(b.x),y2:yScale(b.delta),col});
       }
     }
-    segs.forEach(s=>{ svg+=`<line x1="${s.x1}" y1="${s.y1}" x2="${s.x2}" y2="${s.y2}" stroke="${s.col}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`; });
+    segs.forEach(s=>{ svg+=`<line x1="${s.x1}" y1="${s.y1}" x2="${s.x2}" y2="${s.y2}" stroke="${s.col}" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>`; });
     // dots (the origin gets a hover target but no dot — it isn't a game)
     if (solid.length) hits.push({cx:xScale(0), cy:yScale(0), origin:true});
     solid.forEach(p=>{
       const col = p.delta>0?'#0f7a3d':p.delta<0?'#b42318':'#6b6560';
-      svg+=`<circle cx="${xScale(p.x)}" cy="${yScale(p.delta)}" r="4" fill="${col}" stroke="#fff" stroke-width="1.2"/>`;
+      svg+=`<circle cx="${xScale(p.x)}" cy="${yScale(p.delta)}" r="5.2" fill="${col}" stroke="#fff" stroke-width="1.2"/>`;
       hits.push({cx:xScale(p.x), cy:yScale(p.delta), p});
     });
   }
