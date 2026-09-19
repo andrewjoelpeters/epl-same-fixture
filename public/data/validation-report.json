@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-09-14T11:03:33.742Z",
+  "fetchedAt": "2026-09-19T09:49:05.750Z",
   "seasons": {
     "2022-23": {
       "plMatches": 380,
@@ -43,7 +43,7 @@
       "Mapping 2022-23->2023-24: promoted teams not all in PL: Leicester City FC, Ipswich Town FC, Leeds United FC (maybe playoff winner not top3)",
       "Mapping 2023-24->2024-25: promoted teams not all in PL: Leeds United FC, Burnley FC, Sheffield United FC (maybe playoff winner not top3)",
       "Mapping 2024-25->2025-26: promoted teams not all in PL: Coventry City FC, Ipswich Town FC, Millwall FC (maybe playoff winner not top3)",
-      "Mapping 2025-26->2026-27: promoted teams not all in PL: Swansea City AFC, Middlesbrough FC, Queens Park Rangers FC (maybe playoff winner not top3)"
+      "Mapping 2025-26->2026-27: promoted teams not all in PL: West Ham United FC, Southampton FC, Swansea City AFC (maybe playoff winner not top3)"
     ]
   },
   "mapping": {
